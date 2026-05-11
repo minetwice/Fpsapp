@@ -1,7 +1,10 @@
+// Define the platform macro before any includes
+#define VK_USE_PLATFORM_ANDROID_KHR 1
+
+#include "vulkan_core.h"
 #include <android/log.h>
 #include <cstdint>
 #include <vector>
-#include "vulkan_core.h"
 
 #define LOG_TAG "VulkanCore"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
