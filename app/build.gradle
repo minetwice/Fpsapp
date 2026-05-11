@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    namespace 'com.yourmod.vulkanrenderer'   // ✅ ADD THIS LINE
     compileSdk 34
 
     defaultConfig {
@@ -13,8 +14,6 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
-        // 🔴 REMOVED: externalNativeBuild with path from here – it does not belong inside defaultConfig
 
         ndk {
             abiFilters 'arm64-v8a'
@@ -28,10 +27,9 @@ android {
         }
     }
 
-    // ✅ CORRECT: externalNativeBuild must be at the top level of android
     externalNativeBuild {
         cmake {
-            path "../native/CMakeLists.txt"   // Path from app/ to the CMake file
+            path "../native/CMakeLists.txt"
             version "3.22.1"
         }
     }
