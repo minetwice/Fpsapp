@@ -1,4 +1,6 @@
 #include <android/log.h>
+#include <cstdint>
+#include <vector>
 #include "vulkan_core.h"
 
 #define LOG_TAG "VulkanCore"
