@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.yourmod">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <!-- 🟢 Tell Android we want to use Vulkan -->
+    <uses-feature android:name="android.hardware.vulkan.version" 
+                  android:version="0x401000" 
+                  android:required="false" />
+
+    <application>
+        <!-- Add your launcher activity here -->
+    </application>
+
+</manifest>
