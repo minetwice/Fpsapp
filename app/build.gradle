@@ -1,32 +1,74 @@
+plugins {
+    // This applies the Android Application plugin to this module.
+    id 'com.android.application'
+}
+
 android {
+    // The SDK version used to compile your app. Using 34 ensures you have the latest APIs.
     compileSdk 34
 
     defaultConfig {
-        minSdk 29  // Android 10, good Vulkan support
+        // Your app's unique application ID.
+        applicationId "com.yourmod.vulkanrenderer"
+        // The minimum Android version your app supports (Android 10, for good Vulkan support).
+        minSdk 29
+        // The target SDK version your app is designed to run on.
         targetSdk 34
-        ndk {
-            abiFilters 'arm64-v8a'
-        }
+        // Internal version code and name for your app.
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // 🔴 CRITICAL FOR YOUR NATIVE CODE: This block tells Gradle where your CMakeLists.txt is
         externalNativeBuild {
             cmake {
-                cppFlags "-std=c++17"
-                arguments "-DANDROID_STL=c++_shared"
+                // Path is from the module's root directory (the 'app' folder) to the CMake file.
+                // It points up one level ('../') to the 'native' folder at the project root.
+                path "../native/CMakeLists.txt"
+                // The minimum version of CMake to use. 3.22.1 is stable and modern.
+                version "3.22.1"
             }
         }
-    }
 
-    // 🟢 Tell Gradle where our CMakeLists.txt is for the native code
-    externalNativeBuild {
-        cmake {
-            path "../native/CMakeLists.txt"  // Absolute path to CMake file
-            version "3.22.1"
+        // 🔴 CRITICAL FOR YOUR NATIVE CODE: This filters which CPU architectures your .so libraries are built for.
+        // For modern Android devices, 'arm64-v8a' is the 64-bit standard.
+        ndk {
+            abiFilters 'arm64-v8a'
         }
     }
 
     buildTypes {
         release {
+            // If true, the system will try to obfuscate your Java bytecode. Keep false for debugging.
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            // The default ProGuard rules file for your project.
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    // This block is a duplicate of the one in defaultConfig. It's needed to correctly set up the CMake integration.
+    externalNativeBuild {
+        cmake {
+            // The path is repeated here for the configuration stage.
+            path "../native/CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
+    compileOptions {
+        // Sets the Java language version to Java 8. Newer versions might not be fully supported by your tools.
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    // Standard Android dependencies. You may not need all of these, but they are included for reference.
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
