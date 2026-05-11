@@ -45,7 +45,7 @@ APP_NAME="Gradle"
 APP_BASE_NAME=${0##*/}
 
 # Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
-DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+DEFAULT_JVM_OPTS="-Xmx64m -Xms64m"
 
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
@@ -142,7 +142,7 @@ if "$cygwin" || "$msys" ; then
     #
     # This is complicated by the fact that `cygpath` can be quite slow.
     #
-    # Instead of trying to do the conversion, we can use a subshell and the `$(`
+    # Instead of trying to do the conversion, we can use a subshell and the `$(
     # command substitution to capture the output of `cygpath`. However, this runs the risk of
     # hitting command substitution limits (on older systems), so we try to avoid it.
     #
