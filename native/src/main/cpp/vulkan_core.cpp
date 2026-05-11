@@ -1,16 +1,13 @@
-include <android/log.h>
-include "vulkan_core.h"
+#include <android/log.h>
+#include "vulkan_core.h"
 
-define LOG_TAG "VulkanCore"
-define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOG_TAG "VulkanCore"
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 static VulkanData vkData = {};
 static bool initialized = false;
 
-/**
- * 🟡 Creates the Vulkan instance.
- */
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -24,7 +21,6 @@ static bool createInstance() {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    // 🟡 Add required Vulkan extensions for Android
     const char* extensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
         VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
@@ -41,9 +37,6 @@ static bool createInstance() {
     return true;
 }
 
-/**
- * 🟡 Picks a physical device (GPU) that supports Vulkan.
- */
 static bool pickPhysicalDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(vkData.instance, &deviceCount, nullptr);
@@ -55,7 +48,6 @@ static bool pickPhysicalDevice() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(vkData.instance, &deviceCount, devices.data());
 
-    // 🟡 Choose the first discrete GPU or fallback to any
     for (const auto& device : devices) {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -67,20 +59,16 @@ static bool pickPhysicalDevice() {
         }
     }
 
-    // Fallback to the first device
     vkData.physicalDevice = devices[0];
     LOGD("Selected fallback GPU");
     return true;
 }
 
-/**
- * 🟡 Creates the logical device and queues.
- */
 static bool createLogicalDevice() {
     float queuePriority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = 0; // Using the first queue family
+    queueCreateInfo.queueFamilyIndex = 0;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
 
@@ -105,11 +93,7 @@ static bool createLogicalDevice() {
     return true;
 }
 
-/**
- * 🟡 Creates the swapchain and gets the surface.
- */
 static bool createSurfaceAndSwapchain(ANativeWindow* window) {
-    // 🟡 Create the Vulkan surface for Android
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.window = window;
@@ -119,7 +103,6 @@ static bool createSurfaceAndSwapchain(ANativeWindow* window) {
         return false;
     }
 
-    // 🟡 Query surface capabilities to choose swapchain format and extent
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkData.physicalDevice, vkData.surface, &capabilities);
 
@@ -148,7 +131,6 @@ static bool createSurfaceAndSwapchain(ANativeWindow* window) {
     return true;
 }
 
-// 🟡 Public function implementations
 bool initVulkan(ANativeWindow* window) {
     if (initialized) return true;
 
@@ -170,9 +152,7 @@ void renderFrame() {
         LOGE("Cannot render: Vulkan not initialized");
         return;
     }
-    // 🔴 For Stage 1, just log that rendering works
     LOGD("Rendering frame...");
-    // In the future, you will add actual draw commands here
 }
 
 void cleanupVulkan() {
