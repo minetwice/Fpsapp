@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom-remap' version '1.6.3'
+    id 'fabric-loom' version '1.12'
     id 'java-library'
 }
 
@@ -12,33 +12,23 @@ repositories {
 }
 
 dependencies {
-    // Fabric Loader (mod implementation ke liye)
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    
-    // Agar Fabric API chahiye (optional), to uncomment karo:
-    // modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
 loom {
-    // Required for remap plugin
-    mods {
-        vulkanmod {
-            sourceSet sourceSets.main
-        }
-    }
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
+    // HACK: Force mod to use only one source set to avoid side split errors
+    // This is needed because our Mod doesn't have client-separate sources
+    runConfigs.client.ideConfigGenerated = true
 }
 
 processResources {
-    // Native .so file ko JAR ke andar lib/arm64-v8a/ mein copy karo
-    from("$rootDir/native/build/libvulkan_renderer.so") {
+    // Copy The Native Shared Library
+    from("$rootDir/app/src/main/jniLibs/arm64-v8a/libvulkan_renderer.so") {
         into "lib/arm64-v8a/"
     }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType(JavaCompile).configureEach {
