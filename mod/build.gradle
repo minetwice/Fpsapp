@@ -19,9 +19,16 @@ dependencies {
 
 loom {
     mixin.useLegacyMixinAp = false
+    accessWidenerPath = file("src/main/resources/vulkanmod.accesswidener")
 }
 
-tasks.withType(JavaCompile).configureEach {
-    it.options.encoding = 'UTF-8'
-    it.options.release = 21
+processResources {
+    from(file("$rootDir/native/build/libvulkan_renderer.so")) {
+        into "lib/arm64-v8a/"
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+    options.release = 21
 }
