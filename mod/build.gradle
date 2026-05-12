@@ -19,6 +19,7 @@ dependencies {
 
 loom {
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
+    useLegacyMixinAp = true          // Add this property for Loom 1.15 compatibility
 }
 
 tasks.withType(JavaCompile).configureEach {
