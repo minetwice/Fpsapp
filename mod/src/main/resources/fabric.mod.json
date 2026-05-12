@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "vulkan_renderer",        // <-- CHANGE THIS FROM "vulkanmod"
+  "id": "vulkan_renderer",
   "version": "1.0.0",
-  "name": "Vulkan Renderer Mod",
+  "name": "Vulkan Renderer",
   "description": "High-performance Vulkan renderer for Minecraft",
   "authors": ["YourName"],
   "license": "MIT",
@@ -13,6 +13,6 @@
   },
   "mixins": ["vulkanmod.mixins.json"],
   "depends": {
-    "minecraft": ["1.21.11"]
+    "minecraft": "1.21.11"
   }
 }
