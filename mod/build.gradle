@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom-remap' version '1.9.0'
+    id 'net.fabricmc.fabric-loom-remap' version '1.14'
     id 'java-library'
 }
 
@@ -12,16 +12,25 @@ repositories {
 }
 
 dependencies {
-    // Ye direct 'modImplementation' se better hai
+    // For obfuscated versions, using 'modCompileOnly' is often sufficient
     modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
-    // Agar Minecraft classes chahiye toh, lekin aam taur par zaroori nahi
-    // compileOnly "com.mojang:minecraft:${project.minecraft_version}"
 }
 
 loom {
-    // Ye ensure karega ki saare dependencies sahi se remap ho
-    // Yaad rakhein: 1.21.11 obfuscated version ke liye 'remap' plugin use hota hai
+    // This block is required for the -remap plugin
+    mods {
+        vulkanmod {
+            sourceSet sourceSets.main
+        }
+    }
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
+}
+
+processResources {
+    // This uses the copy closure to avoid empty directories
+    from("$rootDir/native/build/libvulkan_renderer.so") {
+        into "lib/arm64-v8a/"
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
