@@ -1,4 +1,5 @@
 plugins {
     id 'com.android.application' version '8.2.0' apply false
+    // Use 1.6-SNAPSHOT (compatible with Gradle 8.2)
     id 'fabric-loom' version '1.6-SNAPSHOT' apply false
 }
