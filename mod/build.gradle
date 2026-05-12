@@ -1,5 +1,6 @@
 plugins {
-    id 'fabric-loom' version '1.12'
+    // Use the same correct plugin ID here
+    id 'net.fabricmc.fabric-loom-remap' version '1.14'
     id 'java-library'
 }
 
@@ -8,7 +9,7 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
-    maven { url 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.fabricmc.net/' }
 }
 
 dependencies {
@@ -17,18 +18,9 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 }
 
+// The loom block is simpler for the -remap variant
 loom {
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
-    // HACK: Force mod to use only one source set to avoid side split errors
-    // This is needed because our Mod doesn't have client-separate sources
-    runConfigs.client.ideConfigGenerated = true
-}
-
-processResources {
-    // Copy The Native Shared Library
-    from("$rootDir/app/src/main/jniLibs/arm64-v8a/libvulkan_renderer.so") {
-        into "lib/arm64-v8a/"
-    }
 }
 
 tasks.withType(JavaCompile).configureEach {
