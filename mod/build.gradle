@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom-remap' version '1.14'
+    id 'net.fabricmc.fabric-loom-remap' version '1.6.3'
     id 'java-library'
 }
 
@@ -12,12 +12,15 @@ repositories {
 }
 
 dependencies {
-    // For obfuscated versions, using 'modCompileOnly' is often sufficient
-    modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
+    // Fabric Loader (mod implementation ke liye)
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    
+    // Agar Fabric API chahiye (optional), to uncomment karo:
+    // modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
 loom {
-    // This block is required for the -remap plugin
+    // Required for remap plugin
     mods {
         vulkanmod {
             sourceSet sourceSets.main
@@ -27,10 +30,15 @@ loom {
 }
 
 processResources {
-    // This uses the copy closure to avoid empty directories
+    // Native .so file ko JAR ke andar lib/arm64-v8a/ mein copy karo
     from("$rootDir/native/build/libvulkan_renderer.so") {
         into "lib/arm64-v8a/"
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType(JavaCompile).configureEach {
