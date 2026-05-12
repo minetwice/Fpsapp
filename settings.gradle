@@ -7,7 +7,9 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    // Change from FAIL_ON_PROJECT_REPOS to PREFER_PROJECT_REPOS or PREFER_SETTINGS
+    // This allows plugins to add their own repositories while still using settings repos
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
