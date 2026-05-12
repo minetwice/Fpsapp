@@ -1,6 +1,6 @@
 plugins {
-    // Android Gradle Plugin 8.7.0 is compatible with Gradle 9.2
+    // Android App ke liye
     id 'com.android.application' version '8.7.0' apply false
-    // The correct plugin ID for your obfuscated Minecraft version
-    id 'net.fabricmc.fabric-loom-remap' version '1.14' apply false
+    // Fabric Loom (obfuscated version 1.21.11 ke liye remap plugin)
+    id 'net.fabricmc.fabric-loom-remap' version '1.6.3' apply false
 }
