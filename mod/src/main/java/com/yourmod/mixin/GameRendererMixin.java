@@ -1,7 +1,8 @@
 package com.yourmod.mixin;
 
-import com.yourmod.PerformanceClient;
+import com.yourmod.VulkanManager;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.util.profiler.RenderTickCounter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -10,17 +11,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
 
+    // Updated signature for Minecraft 1.21.11
     @Inject(method = "render", at = @At("HEAD"))
-    private void onRenderStart(float tickDelta, long startTime, boolean tick, CallbackInfo ci) {
+    private void onRenderStart(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
         // Called at the very beginning of each frame render
-        // Your APK can send tuning commands over socket here
-        // For now, just a placeholder to show it's being called
-        // PerformanceClient.LOGGER.info("Frame rendering started");
+        VulkanManager.getInstance().renderFrame();
     }
 
     @Inject(method = "render", at = @At("RETURN"))
-    private void onRenderEnd(float tickDelta, long startTime, boolean tick, CallbackInfo ci) {
-        // Called after frame is rendered, good place for FPS cap / syncing
-        // PerformanceClient.LOGGER.info("Frame rendering ended");
+    private void onRenderEnd(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
+        // Called after frame is rendered
+        // You can add cleanup or FPS pacing here
     }
 }
