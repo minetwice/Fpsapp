@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.6-SNAPSHOT'   // match root build.gradle
+    id 'fabric-loom' version '1.6-SNAPSHOT'
     id 'java-library'
 }
 
@@ -21,10 +21,9 @@ loom {
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
 }
 
-// Task to compile native Vulkan .so (once) and copy to mod resources
+// Native build task (same as before, but no version conflict)
 task buildNativeForMod {
     doLast {
-        // Create native build directory
         def nativeBuildDir = file("${rootProject.projectDir}/native/build")
         if (!nativeBuildDir.exists()) {
             exec {
@@ -39,7 +38,6 @@ task buildNativeForMod {
             workingDir "${rootProject.projectDir}/native"
             commandLine 'cmake', '--build', 'build'
         }
-        // Copy .so to mod resources
         def targetDir = file("src/main/resources/lib/arm64-v8a")
         targetDir.mkdirs()
         copy {
