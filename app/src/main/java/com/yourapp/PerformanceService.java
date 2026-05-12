@@ -3,8 +3,8 @@ package com.yourapp;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+import android.net.LocalServerSocket;
 import android.net.LocalSocket;
-import android.net.LocalSocketAddress;
 import android.util.Log;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -12,7 +12,7 @@ import java.io.PrintWriter;
 
 public class PerformanceService extends Service {
     private static final String SOCKET_NAME = "vulkan_perf_socket";
-    private LocalSocket serverSocket;
+    private LocalServerSocket serverSocket;
     private boolean isRunning = true;
 
     @Override
@@ -24,9 +24,7 @@ public class PerformanceService extends Service {
     private void startPerformanceServer() {
         new Thread(() -> {
             try {
-                serverSocket = new LocalSocket();
-                serverSocket.bind(new LocalSocketAddress(SOCKET_NAME,
-                        LocalSocketAddress.Namespace.ABSTRACT));
+                serverSocket = new LocalServerSocket(SOCKET_NAME);
                 while (isRunning) {
                     LocalSocket clientSocket = serverSocket.accept();
                     handleClient(clientSocket);
@@ -42,7 +40,6 @@ public class PerformanceService extends Service {
                 new InputStreamReader(clientSocket.getInputStream()));
              PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
 
-            // Send optimization config to Mod
             String config = getPerformanceConfig();
             out.println(config);
 
