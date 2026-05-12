@@ -1,4 +1,4 @@
 plugins {
     id 'com.android.application' version '8.2.0' apply false
-    id 'fabric-loom' version '1.7.2' apply false
+    id 'fabric-loom' version '1.6-SNAPSHOT' apply false
 }
