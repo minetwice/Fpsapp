@@ -1,6 +1,5 @@
 plugins {
-    // Use the same correct plugin ID here
-    id 'net.fabricmc.fabric-loom-remap' version '1.14'
+    id 'net.fabricmc.fabric-loom-remap' version '1.6.3'
     id 'java-library'
 }
 
@@ -18,7 +17,6 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 }
 
-// The loom block is simpler for the -remap variant
 loom {
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
 }
