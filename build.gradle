@@ -1,11 +1,4 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     id 'com.android.application' version '8.2.0' apply false
-    id 'fabric-loom' version '1.2-SNAPSHOT' apply false
-}
-
-// Optional: Define a task that deletes the root project's build directory.
-// This is a standard convenience task for a clean build.
-tasks.register('clean', Delete) {
-    delete rootProject.buildDir
+    id 'fabric-loom' version '1.7.2' apply false
 }
