@@ -2,16 +2,16 @@
   "schemaVersion": 1,
   "id": "vulkanmod",
   "version": "1.0.0",
-  "name": "Vulkan Renderer Mod",
-  "description": "High-performance Vulkan renderer for Minecraft on Android & PC",
-  "authors": ["YourName"],
+  "name": "Vulkan Renderer",
+  "description": "High performance Vulkan renderer for Modern MC",
+  "authors": ["Your Name"],
   "contact": {},
   "license": "MIT",
   "icon": "assets/vulkanmod/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": ["com.yourmod.VulkanMod"],
-    "main": ["com.yourmod.VulkanMod"]
+    "client": ["com.yourvulkanmod.VulkanMod"],
+    "main": ["com.yourvulkanmod.VulkanMod"]
   },
   "mixins": ["vulkanmod.mixins.json"],
   "depends": {
