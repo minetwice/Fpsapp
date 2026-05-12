@@ -3,16 +3,14 @@ package com.yourapp;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.net.LocalServerSocket;
-import android.net.LocalSocket;
 import android.util.Log;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class PerformanceService extends Service {
-    private static final String SOCKET_NAME = "vulkan_perf_socket";
-    private LocalServerSocket serverSocket;
+    private static final int PORT = 12345;
+    private ServerSocket serverSocket;
     private boolean isRunning = true;
 
     @Override
@@ -24,28 +22,24 @@ public class PerformanceService extends Service {
     private void startPerformanceServer() {
         new Thread(() -> {
             try {
-                serverSocket = new LocalServerSocket(SOCKET_NAME);
+                serverSocket = new ServerSocket(PORT);
                 while (isRunning) {
-                    LocalSocket clientSocket = serverSocket.accept();
+                    Socket clientSocket = serverSocket.accept();
                     handleClient(clientSocket);
                 }
             } catch (Exception e) {
-                Log.e("PerfService", "Socket error: " + e.getMessage());
+                Log.e("PerfService", "Server error: " + e.getMessage());
             }
         }).start();
     }
 
-    private void handleClient(LocalSocket clientSocket) {
-        try (BufferedReader in = new BufferedReader(
-                new InputStreamReader(clientSocket.getInputStream()));
+    private void handleClient(Socket clientSocket) {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
              PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
-
-            String config = getPerformanceConfig();
-            out.println(config);
-
-            String response;
-            while ((response = in.readLine()) != null) {
-                Log.d("PerfService", "Mod response: " + response);
+            out.println(getPerformanceConfig());
+            String line;
+            while ((line = in.readLine()) != null) {
+                Log.d("PerfService", "Mod: " + line);
             }
         } catch (Exception e) {
             Log.e("PerfService", "Client handler error: " + e.getMessage());
@@ -64,7 +58,5 @@ public class PerformanceService extends Service {
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
+    public IBinder onBind(Intent intent) { return null; }
 }
