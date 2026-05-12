@@ -1,19 +1,19 @@
 pluginManagement {
     repositories {
-        // These are the essential repositories for fetching Android Gradle Plugin and its dependencies.
+        maven { url 'https://maven.fabricmc.net/' }
+        gradlePluginPortal()
         google()
         mavenCentral()
-        gradlePluginPortal()
     }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // These repositories are for your app's dependencies (AndroidX, Material Design, etc.).
         google()
         mavenCentral()
+        maven { url 'https://maven.fabricmc.net/' }
     }
 }
-
-// This includes the 'app' module. The path '.' indicates the 'app' directory is directly under the root.
+rootProject.name = "VulkanUnified"
 include ':app'
+include ':mod'
