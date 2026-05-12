@@ -1,27 +1,29 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.7.4'
+    id 'net.fabricmc.fabric-loom-remap' version '1.9.0'
     id 'java-library'
 }
+
 version = project.mod_version
 group = project.maven_group
+
 repositories {
     mavenCentral()
     maven { url 'https://maven.fabricmc.net/' }
 }
+
 dependencies {
-    minecraft "com.mojang:minecraft:${minecraft_version}"
-    mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    // Ye direct 'modImplementation' se better hai
+    modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
+    // Agar Minecraft classes chahiye toh, lekin aam taur par zaroori nahi
+    // compileOnly "com.mojang:minecraft:${project.minecraft_version}"
 }
+
 loom {
+    // Ye ensure karega ki saare dependencies sahi se remap ho
+    // Yaad rakhein: 1.21.11 obfuscated version ke liye 'remap' plugin use hota hai
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
 }
-processResources {
-    // Copy the .so file from the build output
-    from("$buildDir/libs/vulkan_renderer.so") {
-        into "lib/arm64-v8a/"
-    }
-}
+
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = 'UTF-8'
     it.options.release = 21
