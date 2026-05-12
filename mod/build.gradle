@@ -19,7 +19,8 @@ dependencies {
 
 loom {
     mixin.useLegacyMixinAp = false
-    accessWidenerPath = file("src/main/resources/vulkanmod.accesswidener")
+    // Remove or comment the access widener line:
+    // accessWidenerPath = file("src/main/resources/vulkanmod.accesswidener")
 }
 
 processResources {
