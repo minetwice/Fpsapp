@@ -2,21 +2,18 @@
   "schemaVersion": 1,
   "id": "vulkanmod",
   "version": "1.0.0",
-  "name": "Vulkan Renderer",
-  "description": "High performance Vulkan renderer for Modern MC",
-  "authors": ["Your Name"],
-  "contact": {},
+  "name": "Vulkan Renderer Mod",
+  "description": "High-performance Vulkan renderer for Minecraft",
+  "authors": ["twicefear"],
   "license": "MIT",
-  "icon": "assets/vulkanmod/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": ["com.yourvulkanmod.VulkanMod"],
-    "main": ["com.yourvulkanmod.VulkanMod"]
+    "client": ["com.yourmod.VulkanMod"],
+    "main": ["com.yourmod.VulkanMod"]
   },
   "mixins": ["vulkanmod.mixins.json"],
+  "accessWidener": "vulkanmod.accesswidener",
   "depends": {
-    "fabricloader": ">=0.14.0",
-    "minecraft": "1.21.x",
-    "java": ">=21"
+    "minecraft": ["1.21.11"]
   }
 }
