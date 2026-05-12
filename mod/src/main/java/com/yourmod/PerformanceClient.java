@@ -10,10 +10,15 @@ import java.net.Socket;
 public class PerformanceClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("VulkanOptimizer");
     private static final int PORT = 12345;
+    private static String targetPackage = "";
+    private static boolean enableIndirectDraw = true;
+    private static boolean enableMultiThreadedRendering = true;
+    private static int targetFPS = 500;
 
     @Override
     public void onInitializeClient() {
         connectToOptimizerApp();
+        applyNativeOptimizations();
     }
 
     private void connectToOptimizerApp() {
@@ -25,8 +30,8 @@ public class PerformanceClient implements ClientModInitializer {
 
                     String configJson = in.readLine();
                     if (configJson != null) {
-                        LOGGER.info("Received config: " + configJson);
-                        // Apply optimizations here
+                        parseConfig(configJson);
+                        LOGGER.info("Received and applied config: " + configJson);
                     }
 
                     while (true) {
@@ -41,5 +46,32 @@ public class PerformanceClient implements ClientModInitializer {
                 }
             }
         }).start();
+    }
+
+    private void parseConfig(String json) {
+        // Simple parsing - in production use Gson
+        if (json.contains("target_package")) {
+            targetPackage = json.split("target_package\":\"")[1].split("\"")[0];
+        }
+        if (json.contains("enable_indirect_draw")) {
+            enableIndirectDraw = json.contains("\"enable_indirect_draw\":true");
+        }
+        if (json.contains("enable_multi_threaded_rendering")) {
+            enableMultiThreadedRendering = json.contains("\"enable_multi_threaded_rendering\":true");
+        }
+        if (json.contains("target_fps")) {
+            targetFPS = Integer.parseInt(json.split("target_fps\":")[1].split(",")[0]);
+        }
+    }
+
+    private void applyNativeOptimizations() {
+        System.loadLibrary("vulkan_renderer");
+        if (enableIndirectDraw) {
+            VulkanBridge.setIndirectDrawEnabled(true);
+        }
+        if (enableMultiThreadedRendering) {
+            VulkanBridge.setMultiThreadedRendering(true);
+        }
+        VulkanBridge.setTargetFPS(targetFPS);
     }
 }
