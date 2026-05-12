@@ -13,7 +13,7 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-// Global Vulkan objects
+// Vulkan global objects
 static VkInstance instance = VK_NULL_HANDLE;
 static VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 static VkDevice device = VK_NULL_HANDLE;
@@ -25,34 +25,25 @@ static VkCommandPool commandPool = VK_NULL_HANDLE;
 static std::vector<VkCommandBuffer> commandBuffers;
 static std::vector<VkFramebuffer> framebuffers;
 static VkRenderPass renderPass = VK_NULL_HANDLE;
-static VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 static VkExtent2D swapchainExtent = {};
+static uint32_t swapImageCount = 0;
 
-// Performance feature flags
-static bool g_enableIndirectDraw = true;
-static bool g_enableMultiThreadedRendering = true;
+// Performance flags and targets
+static bool g_optEntities = true;
+static bool g_optBlocks = true;
+static bool g_optHits = true;
+static bool g_optCamera = true;
+static bool g_optReplay = true;
+static bool g_highPerf = true;
 static int g_targetFPS = 500;
 
-// Multi-threading support
+// Multi‑threading helpers
 static std::vector<std::thread> renderThreads;
 static std::mutex renderMutex;
 
-// External functions from JNI bridge
-extern "C" void setIndirectDrawEnabled(bool enabled) {
-    g_enableIndirectDraw = enabled;
-    LOGD("Indirect draw: %s", enabled ? "ON" : "OFF");
-}
-
-extern "C" void setMultiThreadedRendering(bool enabled) {
-    g_enableMultiThreadedRendering = enabled;
-    LOGD("Multi-threaded rendering: %s", enabled ? "ON" : "OFF");
-}
-
-extern "C" void setTargetFPS(int fps) {
-    g_targetFPS = fps;
-    LOGD("Target FPS set to: %d", fps);
-}
-
+// -----------------------------------------------------------------------------
+// Vulkan instance, device, swapchain creation (same as before, polished)
+// -----------------------------------------------------------------------------
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -60,7 +51,7 @@ static bool createInstance() {
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "CustomVulkan";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_3;  // Use newer Vulkan 1.3 for best performance
+    appInfo.apiVersion = VK_API_VERSION_1_3;  // Use Vulkan 1.3 for best features
 
     const char* extensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
@@ -178,14 +169,16 @@ static bool createSurfaceAndSwapchain(ANativeWindow* window) {
     swapInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapInfo.preTransform = caps.currentTransform;
     swapInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;  // Use mailbox for best performance
+    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;   // best for high FPS
     swapInfo.clipped = VK_TRUE;
 
     if (vkCreateSwapchainKHR(device, &swapInfo, nullptr, &swapchain) != VK_SUCCESS) {
         LOGE("Failed to create swapchain");
         return false;
     }
-    LOGD("Swapchain created");
+
+    vkGetSwapchainImagesKHR(device, swapchain, &swapImageCount, nullptr);
+    LOGD("Swapchain created with %u images", swapImageCount);
     return true;
 }
 
@@ -193,10 +186,8 @@ static void createRenderPass() {
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // Use LOAD instead of CLEAR for speed
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
@@ -219,21 +210,12 @@ static void createRenderPass() {
     vkCreateRenderPass(device, &rpInfo, nullptr, &renderPass);
 }
 
-static void createGraphicsPipeline() {
-    // Fast pipeline shader loading not actually loading heavy shaders right now
-    // Because our goal is "only 500 frames per second" without the real game content
-    // For production, you'd load actual vertex/fragment shaders
-    LOGD("Fast graphics pipeline stub created");
-}
-
 static void createFramebuffers() {
-    uint32_t swapImageCount;
-    vkGetSwapchainImagesKHR(device, swapchain, &swapImageCount, nullptr);
     std::vector<VkImage> swapImages(swapImageCount);
     vkGetSwapchainImagesKHR(device, swapchain, &swapImageCount, swapImages.data());
 
     framebuffers.resize(swapImageCount);
-    for (size_t i = 0; i < swapImageCount; i++) {
+    for (uint32_t i = 0; i < swapImageCount; i++) {
         VkImageViewCreateInfo viewInfo = {};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = swapImages[i];
@@ -259,33 +241,12 @@ static void createFramebuffers() {
     }
 }
 
-// Multi-threaded command buffer recording function
-static void recordCommandBuffer(VkCommandBuffer cmdBuffer, size_t index) {
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vkBeginCommandBuffer(cmdBuffer, &beginInfo);
-
-    VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-    VkRenderPassBeginInfo rpBegin = {};
-    rpBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    rpBegin.renderPass = renderPass;
-    rpBegin.framebuffer = framebuffers[index];
-    rpBegin.renderArea.offset = {0, 0};
-    rpBegin.renderArea.extent = swapchainExtent;
-    rpBegin.clearValueCount = 0;  // No clear, using LOAD op
-    rpBegin.pClearValues = nullptr;
-    vkCmdBeginRenderPass(cmdBuffer, &rpBegin, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdEndRenderPass(cmdBuffer);
-    vkEndCommandBuffer(cmdBuffer);
-}
-
 static void createCommandBuffers() {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool);
 
-    uint32_t swapImageCount = framebuffers.size();
     commandBuffers.resize(swapImageCount);
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -294,21 +255,24 @@ static void createCommandBuffers() {
     allocInfo.commandBufferCount = swapImageCount;
     vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data());
 
-    if (g_enableMultiThreadedRendering) {
-        // Parallel recording
-        renderThreads.reserve(swapImageCount);
-        for (size_t i = 0; i < commandBuffers.size(); i++) {
-            renderThreads.emplace_back(recordCommandBuffer, commandBuffers[i], i);
-        }
-        for (auto& t : renderThreads) {
-            if (t.joinable()) t.join();
-        }
-        renderThreads.clear();
-    } else {
-        // Single-threaded fallback
-        for (size_t i = 0; i < commandBuffers.size(); i++) {
-            recordCommandBuffer(commandBuffers[i], i);
-        }
+    // Record command buffers (simple clear screen)
+    for (uint32_t i = 0; i < swapImageCount; i++) {
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
+
+        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+        VkRenderPassBeginInfo rpBegin = {};
+        rpBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rpBegin.renderPass = renderPass;
+        rpBegin.framebuffer = framebuffers[i];
+        rpBegin.renderArea.offset = {0, 0};
+        rpBegin.renderArea.extent = swapchainExtent;
+        rpBegin.clearValueCount = 1;
+        rpBegin.pClearValues = &clearColor;
+        vkCmdBeginRenderPass(commandBuffers[i], &rpBegin, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdEndRenderPass(commandBuffers[i]);
+        vkEndCommandBuffer(commandBuffers[i]);
     }
 }
 
@@ -318,10 +282,10 @@ static void createPipelineCache() {
     vkCreatePipelineCache(device, &cacheInfo, nullptr, &pipelineCache);
 }
 
-// Frame rate limiting for precise 500 FPS target
 static void limitFrameRate() {
     using namespace std::chrono;
     static steady_clock::time_point lastFrame = steady_clock::now();
+    if (g_targetFPS <= 0) return;
     auto targetFrameTime = microseconds(1000000 / g_targetFPS);
     auto elapsed = duration_cast<microseconds>(steady_clock::now() - lastFrame);
     if (elapsed < targetFrameTime) {
@@ -330,26 +294,28 @@ static void limitFrameRate() {
     lastFrame = steady_clock::now();
 }
 
-extern "C" bool initVulkan(ANativeWindow* window) {
+// -----------------------------------------------------------------------------
+// Exported functions
+// -----------------------------------------------------------------------------
+bool initVulkan(ANativeWindow* window) {
     if (!createInstance()) return false;
     if (!pickPhysicalDevice()) return false;
     if (!createLogicalDevice()) return false;
     if (!createSurfaceAndSwapchain(window)) return false;
     createRenderPass();
     createPipelineCache();
-    createGraphicsPipeline();
     createFramebuffers();
     createCommandBuffers();
-    LOGD("Vulkan fully initialized with optimizations");
+    LOGD("Vulkan renderer fully initialized");
     return true;
 }
 
-extern "C" void renderFrame() {
-    limitFrameRate();  // Maintain target FPS
+void renderFrame() {
+    if (g_highPerf) applyRealtimeOptimizations();
+    limitFrameRate();
 
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX,
-                          VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
+    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -368,7 +334,7 @@ extern "C" void renderFrame() {
     vkQueuePresentKHR(graphicsQueue, &presentInfo);
 }
 
-extern "C" void cleanupVulkan() {
+void cleanupVulkan() {
     if (device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(device);
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
@@ -380,5 +346,51 @@ extern "C" void cleanupVulkan() {
         vkDestroyDevice(device, nullptr);
     }
     if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
-    LOGD("Cleaned up Vulkan");
+    LOGD("Vulkan cleaned up");
+}
+
+void setOptimizationFlags(bool entities, bool blocks, bool hits, bool camera, bool replay, bool highPerf) {
+    g_optEntities = entities;
+    g_optBlocks = blocks;
+    g_optHits = hits;
+    g_optCamera = camera;
+    g_optReplay = replay;
+    g_highPerf = highPerf;
+    LOGD("Optimization flags set: E%d B%d H%d C%d R%d HP%d", entities, blocks, hits, camera, replay, highPerf);
+}
+
+void setTargetFPS(int fps) {
+    g_targetFPS = fps;
+    LOGD("Target FPS set to %d", fps);
+}
+
+void applyRealtimeOptimizations() {
+    // For high performance mode, we can request immediate queue submissions
+    // and reduce pipeline latency.
+    if (g_targetFPS > 200) {
+        // Aggressive frame pacing – no extra waits
+        // (already handled by limitFrameRate)
+    }
+}
+
+void onBlockPlaceEvent() {
+    if (g_optBlocks) {
+        // Pre-cache block models, reduce memory fragmentation
+        // (stub – actual implementation would involve updating vertex buffers)
+        LOGD("Block placement optimized (stub)");
+    }
+}
+
+void onHitEvent() {
+    if (g_optHits) {
+        // Use GPU‑accelerated hitbox checks
+        LOGD("Hit detection optimized (stub)");
+    }
+}
+
+void onCameraMove(float deltaX, float deltaY) {
+    if (g_optCamera) {
+        // Pre-rotate view matrices, reduce CPU overhead
+        LOGD("Camera movement optimized (stub)");
+    }
 }
