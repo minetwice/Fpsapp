@@ -14,6 +14,9 @@ extern "C" {
 bool initVulkan(ANativeWindow* window);
 void renderFrame();
 void cleanupVulkan();
+void setIndirectDrawEnabled(bool enabled);
+void setMultiThreadedRendering(bool enabled);
+void setTargetFPS(int fps);
 
 #ifdef __cplusplus
 }
