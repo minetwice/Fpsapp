@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "vulkanmod",
+  "id": "vulkan_renderer",        // <-- CHANGE THIS FROM "vulkanmod"
   "version": "1.0.0",
   "name": "Vulkan Renderer Mod",
   "description": "High-performance Vulkan renderer for Minecraft",
