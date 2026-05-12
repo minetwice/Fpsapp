@@ -3,10 +3,12 @@ package com.yourapp;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.os.LocalSocket;
-import android.os.LocalSocketAddress;
+import android.net.LocalSocket;
+import android.net.LocalSocketAddress;
 import android.util.Log;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 
 public class PerformanceService extends Service {
     private static final String SOCKET_NAME = "vulkan_perf_socket";
@@ -29,7 +31,7 @@ public class PerformanceService extends Service {
                     LocalSocket clientSocket = serverSocket.accept();
                     handleClient(clientSocket);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 Log.e("PerfService", "Socket error: " + e.getMessage());
             }
         }).start();
@@ -44,19 +46,16 @@ public class PerformanceService extends Service {
             String config = getPerformanceConfig();
             out.println(config);
 
-            // Listen for Mod's frame stats to adjust tuning
             String response;
             while ((response = in.readLine()) != null) {
-                // Parse FPS, memory usage, etc., retune JVM if needed
                 Log.d("PerfService", "Mod response: " + response);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e("PerfService", "Client handler error: " + e.getMessage());
         }
     }
 
     private String getPerformanceConfig() {
-        // JSON config with optimized settings for the device
         return "{"
                 + "\"cpu_governor\":\"performance\","
                 + "\"vm_swappiness\":10,"
@@ -68,5 +67,7 @@ public class PerformanceService extends Service {
     }
 
     @Override
-    public IBinder onBind(Intent intent) { return null; }
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 }
