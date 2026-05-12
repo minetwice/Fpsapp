@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "name": "Vulkan Renderer Mod",
   "description": "High-performance Vulkan renderer for Minecraft",
-  "authors": ["twicefear"],
+  "authors": ["YourName"],
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
@@ -12,7 +12,6 @@
     "main": ["com.yourmod.VulkanMod"]
   },
   "mixins": ["vulkanmod.mixins.json"],
-  "accessWidener": "vulkanmod.accesswidener",
   "depends": {
     "minecraft": ["1.21.11"]
   }
