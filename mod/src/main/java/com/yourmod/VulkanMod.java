@@ -1,4 +1,4 @@
-package com.yourmod;
+package com.yourvulkanmod;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
@@ -11,12 +11,12 @@ public class VulkanMod implements ModInitializer, ClientModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("VulkanMod loaded on server side (doing nothing)");
+        LOGGER.info("VulkanMod Loaded!");
     }
 
     @Override
     public void onInitializeClient() {
-        LOGGER.info("VulkanMod initializing client renderer...");
-        VulkanManager.getInstance().init();
+        LOGGER.info("VulkanMod Client Initialize...");
+        // We'll add renderer initialization here later
     }
 }
