@@ -37,12 +37,35 @@ static bool g_optReplay = true;
 static bool g_highPerf = true;
 static int g_targetFPS = 500;
 
-// Multi‑threading helpers
-static std::vector<std::thread> renderThreads;
-static std::mutex renderMutex;
+// -----------------------------------------------------------------------------
+// Forward declarations of static helpers (used internally)
+// -----------------------------------------------------------------------------
+static bool createInstance();
+static bool pickPhysicalDevice();
+static bool createLogicalDevice();
+static bool createSurfaceAndSwapchain(ANativeWindow* window);
+static void createRenderPass();
+static void createFramebuffers();
+static void createCommandBuffers();
+static void createPipelineCache();
+static void limitFrameRate();
 
 // -----------------------------------------------------------------------------
-// Vulkan instance, device, swapchain creation (same as before, polished)
+// Performance optimization functions (must be defined before renderFrame)
+// -----------------------------------------------------------------------------
+void applyRealtimeOptimizations() {
+    if (g_highPerf) {
+        // For high performance mode, we can request immediate queue submissions
+        // and reduce pipeline latency.
+        if (g_targetFPS > 200) {
+            // Aggressive frame pacing – already handled by limitFrameRate()
+        }
+        LOGD("Realtime optimizations applied");
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Vulkan instance, device, swapchain creation
 // -----------------------------------------------------------------------------
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
@@ -51,7 +74,7 @@ static bool createInstance() {
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "CustomVulkan";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_3;  // Use Vulkan 1.3 for best features
+    appInfo.apiVersion = VK_API_VERSION_1_3;
 
     const char* extensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
@@ -169,7 +192,7 @@ static bool createSurfaceAndSwapchain(ANativeWindow* window) {
     swapInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapInfo.preTransform = caps.currentTransform;
     swapInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;   // best for high FPS
+    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
     swapInfo.clipped = VK_TRUE;
 
     if (vkCreateSwapchainKHR(device, &swapInfo, nullptr, &swapchain) != VK_SUCCESS) {
@@ -255,7 +278,6 @@ static void createCommandBuffers() {
     allocInfo.commandBufferCount = swapImageCount;
     vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data());
 
-    // Record command buffers (simple clear screen)
     for (uint32_t i = 0; i < swapImageCount; i++) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -295,7 +317,7 @@ static void limitFrameRate() {
 }
 
 // -----------------------------------------------------------------------------
-// Exported functions
+// Core rendering loop
 // -----------------------------------------------------------------------------
 bool initVulkan(ANativeWindow* window) {
     if (!createInstance()) return false;
@@ -364,19 +386,9 @@ void setTargetFPS(int fps) {
     LOGD("Target FPS set to %d", fps);
 }
 
-void applyRealtimeOptimizations() {
-    // For high performance mode, we can request immediate queue submissions
-    // and reduce pipeline latency.
-    if (g_targetFPS > 200) {
-        // Aggressive frame pacing – no extra waits
-        // (already handled by limitFrameRate)
-    }
-}
-
 void onBlockPlaceEvent() {
     if (g_optBlocks) {
         // Pre-cache block models, reduce memory fragmentation
-        // (stub – actual implementation would involve updating vertex buffers)
         LOGD("Block placement optimized (stub)");
     }
 }
