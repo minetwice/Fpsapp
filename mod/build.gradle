@@ -1,61 +1,27 @@
 plugins {
-    id 'fabric-loom' version '1.6-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version '1.7.4'
     id 'java-library'
 }
-
 version = project.mod_version
 group = project.maven_group
-
 repositories {
     mavenCentral()
     maven { url 'https://maven.fabricmc.net/' }
 }
-
 dependencies {
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
 }
-
 loom {
     mixin.defaultRefmapName = "vulkanmod.refmap.json"
 }
-
-// Native build task (same as before, but no version conflict)
-task buildNativeForMod {
-    doLast {
-        def nativeBuildDir = file("${rootProject.projectDir}/native/build")
-        if (!nativeBuildDir.exists()) {
-            exec {
-                workingDir "${rootProject.projectDir}/native"
-                commandLine 'cmake', '-B', 'build',
-                    "-DCMAKE_TOOLCHAIN_FILE=${System.getenv('ANDROID_NDK_HOME')}/build/cmake/android.toolchain.cmake",
-                    '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-29',
-                    '-DCMAKE_BUILD_TYPE=Release'
-            }
-        }
-        exec {
-            workingDir "${rootProject.projectDir}/native"
-            commandLine 'cmake', '--build', 'build'
-        }
-        def targetDir = file("src/main/resources/lib/arm64-v8a")
-        targetDir.mkdirs()
-        copy {
-            from "${rootProject.projectDir}/native/build/libvulkan_renderer.so"
-            into targetDir
-        }
+processResources {
+    // Copy the .so file from the build output
+    from("$buildDir/libs/vulkan_renderer.so") {
+        into "lib/arm64-v8a/"
     }
 }
-
-processResources.dependsOn buildNativeForMod
-
-jar {
-    from("src/main/resources") {
-        include "lib/**"
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = 'UTF-8'
     it.options.release = 21
