@@ -44,17 +44,16 @@ public class PerformanceService extends Service {
     }
 
     private void handleClient(Socket clientSocket) {
-        try (BufferedReader in = new BufferedReader(
-                new InputStreamReader(clientSocket.getInputStream()));
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
              PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+
+            // Send optimisation configuration
             out.println(getPerformanceConfig());
+
             String line;
             while ((line = in.readLine()) != null) {
                 Log.d("PerfService", "Mod data: " + line);
-                // Parse FPS data and adjust tuning dynamically
-                if (line.contains("fps")) {
-                    // Dynamic tuning based on FPS
-                }
+                // Optionally parse FPS and adjust tuning dynamically
             }
         } catch (Exception e) {
             Log.e("PerfService", "Client handler error: " + e.getMessage());
@@ -64,11 +63,18 @@ public class PerformanceService extends Service {
     private String getPerformanceConfig() {
         return "{"
                 + "\"target_package\":\"" + targetPackage + "\","
+                + "\"optimize_entities\":true,"
+                + "\"optimize_blocks\":true,"
+                + "\"optimize_hits\":true,"
+                + "\"optimize_camera\":true,"
+                + "\"fix_replay_lag\":true,"
                 + "\"cpu_governor\":\"performance\","
+                + "\"gpu_rendering_mode\":\"vulkan_exclusive\","
                 + "\"vm_swappiness\":10,"
-                + "\"sched_utilization\":85,"
-                + "\"jvm_heap_start\":\"2048M\","
-                + "\"jvm_heap_max\":\"4096M\","
+                + "\"sched_utilization\":90,"
+                + "\"jvm_heap_start\":\"4096M\","
+                + "\"jvm_heap_max\":\"8192M\","
+                + "\"g1_gc_regions\":64,"
                 + "\"enable_indirect_draw\":true,"
                 + "\"enable_multi_threaded_rendering\":true,"
                 + "\"target_fps\":500"
@@ -81,7 +87,7 @@ public class PerformanceService extends Service {
     @Override
     public void onDestroy() {
         isRunning = false;
-        try { if (serverSocket != null) serverSocket.close(); } catch (Exception e) {}
+        try { if (serverSocket != null) serverSocket.close(); } catch (Exception e) { }
         super.onDestroy();
     }
 }
