@@ -1,6 +1,4 @@
 plugins {
-    // Android App ke liye
     id 'com.android.application' version '8.7.0' apply false
-    // Fabric Loom (obfuscated version 1.21.11 ke liye remap plugin)
-    id 'net.fabricmc.fabric-loom-remap' version '1.6.3' apply false
+    id 'fabric-loom' version '1.12' apply false
 }
