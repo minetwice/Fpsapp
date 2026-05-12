@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.yourapp">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -9,8 +8,8 @@
                   android:required="false" />
 
     <application>
-        <!-- You may have an activity launcher; add the service below -->
         <service android:name=".PerformanceService" android:enabled="true" android:exported="false" />
+        <!-- Add your main activity if any -->
     </application>
 
 </manifest>
