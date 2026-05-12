@@ -1,4 +1,5 @@
 plugins {
     id 'com.android.application' version '8.7.0' apply false
-    id 'fabric-loom' version '1.12' apply false
+    // Use the correct plugin ID for an obfuscated Minecraft version
+    id 'net.fabricmc.fabric-loom-remap' version '1.14' apply false
 }
