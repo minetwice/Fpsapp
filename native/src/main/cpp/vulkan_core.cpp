@@ -39,9 +39,7 @@ static bool g_optReplay = true;
 static bool g_highPerf = true;
 static int g_targetFPS = 500;
 
-// -----------------------------------------------------------------------------
-// Forward declarations of static helpers
-// -----------------------------------------------------------------------------
+// forward declarations
 static bool createInstance();
 static bool pickPhysicalDevice();
 static bool createLogicalDevice();
@@ -53,8 +51,75 @@ static void createPipelineCache();
 static void limitFrameRate();
 
 // -----------------------------------------------------------------------------
-// Performance optimization function (defined early to avoid missing symbol)
+// Exported C functions (must match VulkanBridge native declarations)
 // -----------------------------------------------------------------------------
+extern "C" bool initVulkan(ANativeWindow* window) {
+    if (!createInstance()) return false;
+    if (!pickPhysicalDevice()) return false;
+    if (!createLogicalDevice()) return false;
+    if (!createSurfaceAndSwapchain(window)) return false;
+    createRenderPass();
+    createPipelineCache();
+    createFramebuffers();
+    createCommandBuffers();
+    LOGD("Vulkan renderer fully initialized");
+    return true;
+}
+
+extern "C" void renderFrame() {
+    if (g_highPerf) applyRealtimeOptimizations();
+    limitFrameRate();
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+
+    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(graphicsQueue);
+
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapchain;
+    presentInfo.pImageIndices = &imageIndex;
+
+    vkQueuePresentKHR(graphicsQueue, &presentInfo);
+}
+
+extern "C" void cleanupVulkan() {
+    if (device != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(device);
+        vkDestroyPipelineCache(device, pipelineCache, nullptr);
+        vkDestroyCommandPool(device, commandPool, nullptr);
+        for (auto fb : framebuffers) vkDestroyFramebuffer(device, fb, nullptr);
+        vkDestroyRenderPass(device, renderPass, nullptr);
+        vkDestroySwapchainKHR(device, swapchain, nullptr);
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        vkDestroyDevice(device, nullptr);
+    }
+    if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
+    LOGD("Vulkan cleaned up");
+}
+
+extern "C" void setOptimizationFlags(bool entities, bool blocks, bool hits, bool camera, bool replay, bool highPerf) {
+    g_optEntities = entities;
+    g_optBlocks = blocks;
+    g_optHits = hits;
+    g_optCamera = camera;
+    g_optReplay = replay;
+    g_highPerf = highPerf;
+    LOGD("Optimization flags set: E%d B%d H%d C%d R%d HP%d", entities, blocks, hits, camera, replay, highPerf);
+}
+
+extern "C" void setTargetFPS(int fps) {
+    g_targetFPS = fps;
+    LOGD("Target FPS set to %d", fps);
+}
+
 extern "C" void applyRealtimeOptimizations() {
     if (g_highPerf) {
         if (g_targetFPS > 200) {
@@ -64,8 +129,26 @@ extern "C" void applyRealtimeOptimizations() {
     }
 }
 
+extern "C" void onBlockPlaceEvent() {
+    if (g_optBlocks) {
+        LOGD("Block placement optimized (stub)");
+    }
+}
+
+extern "C" void onHitEvent() {
+    if (g_optHits) {
+        LOGD("Hit detection optimized (stub)");
+    }
+}
+
+extern "C" void onCameraMove(float deltaX, float deltaY) {
+    if (g_optCamera) {
+        LOGD("Camera movement optimized (stub)");
+    }
+}
+
 // -----------------------------------------------------------------------------
-// Vulkan instance, device, swapchain creation
+// Static helper implementations
 // -----------------------------------------------------------------------------
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
@@ -314,92 +397,4 @@ static void limitFrameRate() {
         std::this_thread::sleep_for(targetFrameTime - elapsed);
     }
     lastFrame = steady_clock::now();
-}
-
-// -----------------------------------------------------------------------------
-// Exported functions (C linkage)
-// -----------------------------------------------------------------------------
-extern "C" bool initVulkan(ANativeWindow* window) {
-    if (!createInstance()) return false;
-    if (!pickPhysicalDevice()) return false;
-    if (!createLogicalDevice()) return false;
-    if (!createSurfaceAndSwapchain(window)) return false;
-    createRenderPass();
-    createPipelineCache();
-    createFramebuffers();
-    createCommandBuffers();
-    LOGD("Vulkan renderer fully initialized");
-    return true;
-}
-
-extern "C" void renderFrame() {
-    if (g_highPerf) applyRealtimeOptimizations();
-    limitFrameRate();
-
-    uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
-
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
-
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
-
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swapchain;
-    presentInfo.pImageIndices = &imageIndex;
-
-    vkQueuePresentKHR(graphicsQueue, &presentInfo);
-}
-
-extern "C" void cleanupVulkan() {
-    if (device != VK_NULL_HANDLE) {
-        vkDeviceWaitIdle(device);
-        vkDestroyPipelineCache(device, pipelineCache, nullptr);
-        vkDestroyCommandPool(device, commandPool, nullptr);
-        for (auto fb : framebuffers) vkDestroyFramebuffer(device, fb, nullptr);
-        vkDestroyRenderPass(device, renderPass, nullptr);
-        vkDestroySwapchainKHR(device, swapchain, nullptr);
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-        vkDestroyDevice(device, nullptr);
-    }
-    if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
-    LOGD("Vulkan cleaned up");
-}
-
-extern "C" void setOptimizationFlags(bool entities, bool blocks, bool hits, bool camera, bool replay, bool highPerf) {
-    g_optEntities = entities;
-    g_optBlocks = blocks;
-    g_optHits = hits;
-    g_optCamera = camera;
-    g_optReplay = replay;
-    g_highPerf = highPerf;
-    LOGD("Optimization flags set: E%d B%d H%d C%d R%d HP%d", entities, blocks, hits, camera, replay, highPerf);
-}
-
-extern "C" void setTargetFPS(int fps) {
-    g_targetFPS = fps;
-    LOGD("Target FPS set to %d", fps);
-}
-
-extern "C" void onBlockPlaceEvent() {
-    if (g_optBlocks) {
-        LOGD("Block placement optimized (stub)");
-    }
-}
-
-extern "C" void onHitEvent() {
-    if (g_optHits) {
-        LOGD("Hit detection optimized (stub)");
-    }
-}
-
-extern "C" void onCameraMove(float deltaX, float deltaY) {
-    if (g_optCamera) {
-        LOGD("Camera movement optimized (stub)");
-    }
 }
