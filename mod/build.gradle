@@ -24,12 +24,6 @@ loom {
 task copyNativeLib(type: Copy) {
     from("$rootDir/native/build/libvulkan_renderer.so")
     into "src/main/resources/lib/arm64-v8a/"
-    doLast {
-        copy {
-            from("$rootDir/native/build/libvulkan_renderer.so")
-            into "src/main/resources/META-INF/natives/arm64-v8a/"
-        }
-    }
 }
 
 processResources {
