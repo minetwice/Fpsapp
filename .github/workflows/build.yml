@@ -41,12 +41,11 @@ jobs:
                 -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build build
           cd ..
-          # Verify .so exists
           ls -la native/build/libvulkan_renderer.so
-          # Copy to APK location (optional)
+          # Copy to APK location
           mkdir -p app/src/main/jniLibs/arm64-v8a
           cp native/build/libvulkan_renderer.so app/src/main/jniLibs/arm64-v8a/
-          # Ensure mod sees the .so
+          # IMPORTANT: Also copy to mod resources so Gradle can pick it up
           mkdir -p mod/src/main/resources/lib/arm64-v8a
           cp native/build/libvulkan_renderer.so mod/src/main/resources/lib/arm64-v8a/
 
@@ -56,12 +55,12 @@ jobs:
       - name: Build Mod JAR
         run: ./gradlew :mod:build
 
-      - name: Verify Mod JAR contains native library
+      - name: Verify Mod JAR size and contents
         run: |
           JAR_PATH=$(ls mod/build/libs/*.jar | head -1)
-          echo "Checking $JAR_PATH"
-          jar tf $JAR_PATH | grep libvulkan || echo "ERROR: Native library missing"
+          echo "JAR: $JAR_PATH"
           ls -lh $JAR_PATH
+          jar tf $JAR_PATH | grep libvulkan || echo "ERROR: Native library not in JAR"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
