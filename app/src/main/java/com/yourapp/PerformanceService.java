@@ -65,16 +65,10 @@ public class PerformanceService extends Service {
                 + "\"optimize_camera\":true,"
                 + "\"fix_replay_lag\":true,"
                 + "\"cpu_governor\":\"performance\","
-                + "\"gpu_rendering_mode\":\"vulkan_exclusive\","
                 + "\"multi_threading\":true,"
                 + "\"dynamic_resolution\":true,"
-                + "\"vm_swappiness\":10,"
-                + "\"sched_utilization\":90,"
                 + "\"jvm_heap_start\":\"4096M\","
                 + "\"jvm_heap_max\":\"8192M\","
-                + "\"g1_gc_regions\":64,"
-                + "\"enable_indirect_draw\":true,"
-                + "\"enable_multi_threaded_rendering\":true,"
                 + "\"target_fps\":500"
                 + "}";
     }
