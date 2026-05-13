@@ -11,18 +11,18 @@
 extern "C" {
 #endif
 
-// Core Vulkan lifecycle
 bool initVulkan(ANativeWindow* window);
 void renderFrame();
 void cleanupVulkan();
-
-// Performance optimization flags
 void setOptimizationFlags(bool entities, bool blocks, bool hits, bool camera, bool replay, bool highPerf);
 void setTargetFPS(int fps);
 void applyRealtimeOptimizations();
 void onBlockPlaceEvent();
 void onHitEvent();
 void onCameraMove(float deltaX, float deltaY);
+// New high-performance functions
+void enableMultiThreading(bool enable);
+void enableDynamicResolution(bool enable);
 
 #ifdef __cplusplus
 }
