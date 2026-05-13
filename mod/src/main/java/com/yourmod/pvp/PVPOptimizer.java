@@ -5,7 +5,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.slf4j.Logger;
@@ -19,8 +18,6 @@ public class PVPOptimizer {
     private static boolean hitLagReduction = true;
     private static boolean knockbackOptimization = true;
     private static boolean critLagFix = true;
-    private static int lastHitTick = 0;
-    private static long lastHitTime = 0;
     private static ConcurrentHashMap<Integer, Long> hitCooldownMap = new ConcurrentHashMap<>();
 
     public static void init() {
@@ -46,29 +43,31 @@ public class PVPOptimizer {
 
     public static void onCrit() {
         if (critLagFix) {
-            // Pre-calc next frame
+            // Pre-calc next frame (stub)
         }
     }
 
-    // Simplified entity search for hit detection
+    // Optimized entity search for hit detection
     public static Entity getNearestEntityForHit(MinecraftClient client, double reach) {
         if (!enabled) return null;
         Entity cameraEntity = client.getCameraEntity();
         if (cameraEntity == null) return null;
         Vec3d cameraPos = cameraEntity.getEyePos();
-        Vec3d lookVec = cameraEntity.getRotationVec(1.0F);
-        double maxDist = reach;
+        double maxDistSq = reach * reach;
         Entity closest = null;
-        double closestDist = maxDist;
+        double closestDistSq = maxDistSq;
+        
         for (Entity entity : client.world.getEntities()) {
             if (entity == cameraEntity) continue;
             if (!entity.isAttackable()) continue;
             Box box = entity.getBoundingBox().expand(0.1);
-            double distToBox = box.squaredDistanceTo(cameraPos);
-            if (distToBox > maxDist * maxDist) continue;
-            // Simple distance check instead of raycast for performance
-            if (distToBox < closestDist) {
-                closestDist = distToBox;
+            // Compute closest point on box to camera position
+            double dx = Math.max(box.minX - cameraPos.x, 0) + Math.max(cameraPos.x - box.maxX, 0);
+            double dy = Math.max(box.minY - cameraPos.y, 0) + Math.max(cameraPos.y - box.maxY, 0);
+            double dz = Math.max(box.minZ - cameraPos.z, 0) + Math.max(cameraPos.z - box.maxZ, 0);
+            double distSq = dx*dx + dy*dy + dz*dz;
+            if (distSq < closestDistSq) {
+                closestDistSq = distSq;
                 closest = entity;
             }
         }
