@@ -42,12 +42,6 @@ jobs:
           cmake --build build
           cd ..
           ls -la native/build/libvulkan_renderer.so
-          # Copy to APK location
-          mkdir -p app/src/main/jniLibs/arm64-v8a
-          cp native/build/libvulkan_renderer.so app/src/main/jniLibs/arm64-v8a/
-          # IMPORTANT: Also copy to mod resources so Gradle can pick it up
-          mkdir -p mod/src/main/resources/lib/arm64-v8a
-          cp native/build/libvulkan_renderer.so mod/src/main/resources/lib/arm64-v8a/
 
       - name: Build APK
         run: ./gradlew :app:assembleDebug
@@ -55,12 +49,23 @@ jobs:
       - name: Build Mod JAR
         run: ./gradlew :mod:build
 
-      - name: Verify Mod JAR size and contents
+      - name: Inject native library into mod JAR
         run: |
+          # Find the mod JAR
           JAR_PATH=$(ls mod/build/libs/*.jar | head -1)
-          echo "JAR: $JAR_PATH"
+          echo "Injecting into $JAR_PATH"
+          # Create temp directory
+          mkdir -p temp_native
+          # Copy .so to correct folder structure
+          mkdir -p temp_native/lib/arm64-v8a
+          cp native/build/libvulkan_renderer.so temp_native/lib/arm64-v8a/
+          # Update the JAR with the .so
+          cd temp_native
+          jar uf ../$JAR_PATH lib/arm64-v8a/libvulkan_renderer.so
+          cd ..
+          # Verify
+          jar tf $JAR_PATH | grep libvulkan
           ls -lh $JAR_PATH
-          jar tf $JAR_PATH | grep libvulkan || echo "ERROR: Native library not in JAR"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
