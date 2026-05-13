@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-  workflow_dispatch:
+    workflow_dispatch:
 
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
         with:
           ndk-version: r25c
 
-      - name: Setup CMake (fast, cached)
+      - name: Setup CMake
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: 3.22.1
@@ -60,13 +60,11 @@ jobs:
           ls -lh $JAR_PATH
           jar tf $JAR_PATH | grep libvulkan && echo "✅ Native library found in JAR"
           SIZE=$(stat -c%s "$JAR_PATH")
-          if [ $SIZE -lt 100000 ]; then
+          if [ $SIZE -lt 200000 ]; then
             echo "❌ ERROR: JAR too small ($SIZE bytes) – native library likely missing or corrupted"
             exit 1
-          elif [ $SIZE -lt 500000 ]; then
-            echo "⚠️ WARNING: JAR size is $SIZE bytes – native library may be stripped or small. Performance may be limited."
           else
-            echo "✅ SUCCESS: JAR size is $SIZE bytes (full native library included)"
+            echo "✅ SUCCESS: JAR size is $SIZE bytes"
           fi
 
       - name: Upload APK artifact
