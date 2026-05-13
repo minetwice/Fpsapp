@@ -46,26 +46,22 @@ jobs:
       - name: Build APK
         run: ./gradlew :app:assembleDebug
 
-      - name: Build Mod JAR
+      - name: Build Mod JAR (with native injection)
         run: ./gradlew :mod:build
 
-      - name: Inject native library into mod JAR
+      - name: Verify Mod JAR size and contents
         run: |
-          # Find the mod JAR
           JAR_PATH=$(ls mod/build/libs/*.jar | head -1)
-          echo "Injecting into $JAR_PATH"
-          # Create temp directory
-          mkdir -p temp_native
-          # Copy .so to correct folder structure
-          mkdir -p temp_native/lib/arm64-v8a
-          cp native/build/libvulkan_renderer.so temp_native/lib/arm64-v8a/
-          # Update the JAR with the .so
-          cd temp_native
-          jar uf ../$JAR_PATH lib/arm64-v8a/libvulkan_renderer.so
-          cd ..
-          # Verify
-          jar tf $JAR_PATH | grep libvulkan
+          echo "JAR: $JAR_PATH"
           ls -lh $JAR_PATH
+          jar tf $JAR_PATH | grep libvulkan
+          SIZE=$(stat -c%s "$JAR_PATH")
+          if [ $SIZE -lt 500000 ]; then
+            echo "ERROR: JAR still too small ($SIZE bytes) - native library missing"
+            exit 1
+          else
+            echo "SUCCESS: JAR size is $SIZE bytes"
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
