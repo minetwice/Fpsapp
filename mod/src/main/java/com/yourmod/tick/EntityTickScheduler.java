@@ -2,18 +2,15 @@ package com.yourmod.tick;
 
 import com.yourmod.PerformanceMonitor;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.passive.PassiveEntity;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
-import java.util.*;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class EntityTickScheduler {
     private static final Map<Entity, Integer> tickSkipCounter = new ConcurrentHashMap<>();
     private static final int MAX_TRACK_DISTANCE = 64;
-    private static final int BASE_TICK_RATE = 20;
     private static boolean enabled = true;
     private static int currentTickSkip = 0;
 
@@ -49,8 +46,8 @@ public class EntityTickScheduler {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return true;
         Box entityBox = entity.getBoundingBox();
-        return client.world.isSpaceEmpty(entityBox) && 
-               !client.world.isOutOfHeightLimit(entityBox.minY);
+        BlockPos blockPos = BlockPos.ofFloored(entityBox.minX, entityBox.minY, entityBox.minZ);
+        return client.world.isSpaceEmpty(entityBox) && !client.world.isOutOfHeightLimit(blockPos);
     }
 
     public static void updateTickRate() {
