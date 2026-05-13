@@ -62,6 +62,16 @@ Java_com_yourmod_VulkanBridge_onCameraMove(JNIEnv *env, jobject thiz, jfloat del
     onCameraMove(deltaX, deltaY);
 }
 
+JNIEXPORT void JNICALL
+Java_com_yourmod_VulkanBridge_enableMultiThreading(JNIEnv *env, jobject thiz, jboolean enable) {
+    enableMultiThreading(enable);
+}
+
+JNIEXPORT void JNICALL
+Java_com_yourmod_VulkanBridge_enableDynamicResolution(JNIEnv *env, jobject thiz, jboolean enable) {
+    enableDynamicResolution(enable);
+}
+
 #ifdef __cplusplus
 }
 #endif
