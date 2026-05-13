@@ -12,14 +12,12 @@ public class VulkanManager {
     public void init() {
         if (initialized) return;
         VulkanMod.LOGGER.info("VulkanManager initialized");
-        // In a real mod, you would get the surface from Minecraft's window and call nativeInitVulkan
         initialized = true;
     }
 
     public void renderFrame() {
         if (!initialized) return;
-        // Call native render when surface available
-        // VulkanBridge.nativeRenderFrame();
+        VulkanBridge.nativeRenderFrame();
     }
 
     public void cleanup() {
