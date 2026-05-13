@@ -46,14 +46,10 @@ public class PerformanceService extends Service {
     private void handleClient(Socket clientSocket) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
              PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
-
-            // Send optimisation configuration
             out.println(getPerformanceConfig());
-
             String line;
             while ((line = in.readLine()) != null) {
                 Log.d("PerfService", "Mod data: " + line);
-                // Optionally parse FPS and adjust tuning dynamically
             }
         } catch (Exception e) {
             Log.e("PerfService", "Client handler error: " + e.getMessage());
@@ -70,6 +66,8 @@ public class PerformanceService extends Service {
                 + "\"fix_replay_lag\":true,"
                 + "\"cpu_governor\":\"performance\","
                 + "\"gpu_rendering_mode\":\"vulkan_exclusive\","
+                + "\"multi_threading\":true,"
+                + "\"dynamic_resolution\":true,"
                 + "\"vm_swappiness\":10,"
                 + "\"sched_utilization\":90,"
                 + "\"jvm_heap_start\":\"4096M\","
