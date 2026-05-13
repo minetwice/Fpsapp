@@ -36,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
 
         confirmButton.setOnClickListener(v -> {
             if (selectedPackage != null) {
-                // Start the performance service targeting selected launcher
                 Intent serviceIntent = new Intent(this, PerformanceService.class);
                 serviceIntent.putExtra("target_package", selectedPackage);
                 startService(serviceIntent);
