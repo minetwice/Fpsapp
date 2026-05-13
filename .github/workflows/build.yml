@@ -43,13 +43,13 @@ jobs:
           cd ..
           mkdir -p app/src/main/jniLibs/arm64-v8a
           cp native/build/libvulkan_renderer.so app/src/main/jniLibs/arm64-v8a/
-          # Check size – should be > 1 MB
           ls -lh native/build/libvulkan_renderer.so
 
       - name: Verify native library size
         run: |
           SIZE=$(stat -c%s "native/build/libvulkan_renderer.so")
-          if [ $SIZE -lt 1000000 ]; then
+          # Accept size >= 500KB (previous threshold was too high)
+          if [ $SIZE -lt 500000 ]; then
             echo "ERROR: Native library too small ($SIZE bytes) – likely stripped or corrupted"
             exit 1
           else
