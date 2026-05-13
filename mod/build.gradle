@@ -22,21 +22,13 @@ loom {
 }
 
 processResources {
-    // Copy the native Vulkan library into the JAR under lib/arm64-v8a/
     from(file("$rootDir/native/build/libvulkan_renderer.so")) {
         into "lib/arm64-v8a/"
     }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE   // ADD THIS LINE
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
     options.release = 21
-}
-
-// Optional: configure jar task to include additional resources if needed
-jar {
-    from("src/main/resources") {
-        include "fabric.mod.json"
-        include "vulkanmod.mixins.json"
-    }
 }
