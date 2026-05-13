@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(ChunkBuilder.class)
 public class ChunkBuilderMixin {
 
-    @ModifyVariable(method = "build", at = @At("HEAD"), ordinal = 0)
+    @ModifyVariable(method = "build", at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private int adjustRenderDistance(int original) {
         if (PerformanceMonitor.isLagging()) {
             return Math.min(original, 6);
