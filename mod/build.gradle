@@ -21,7 +21,7 @@ loom {
     mixin.useLegacyMixinAp = false
 }
 
-// Force include native library directly from build output
+// Force include native library from build output
 jar {
     from("$rootDir/native/build/libvulkan_renderer.so") {
         into "lib/arm64-v8a/"
