@@ -48,6 +48,16 @@ Java_com_yourmod_VulkanBridge_applyRealtimeOptimizations(JNIEnv *env, jobject th
 }
 
 JNIEXPORT void JNICALL
+Java_com_yourmod_VulkanBridge_enableMultiThreading(JNIEnv *env, jobject thiz, jboolean enable) {
+    enableMultiThreading(enable);
+}
+
+JNIEXPORT void JNICALL
+Java_com_yourmod_VulkanBridge_enableDynamicResolution(JNIEnv *env, jobject thiz, jboolean enable) {
+    enableDynamicResolution(enable);
+}
+
+JNIEXPORT void JNICALL
 Java_com_yourmod_VulkanBridge_onBlockPlaceEvent(JNIEnv *env, jobject thiz) {
     onBlockPlaceEvent();
 }
@@ -62,14 +72,10 @@ Java_com_yourmod_VulkanBridge_onCameraMove(JNIEnv *env, jobject thiz, jfloat del
     onCameraMove(deltaX, deltaY);
 }
 
-JNIEXPORT void JNICALL
-Java_com_yourmod_VulkanBridge_enableMultiThreading(JNIEnv *env, jobject thiz, jboolean enable) {
-    enableMultiThreading(enable);
-}
-
-JNIEXPORT void JNICALL
-Java_com_yourmod_VulkanBridge_enableDynamicResolution(JNIEnv *env, jobject thiz, jboolean enable) {
-    enableDynamicResolution(enable);
+// Added for GPUDrivenRenderer
+JNIEXPORT jlong JNICALL
+Java_com_yourmod_VulkanBridge_getDevice(JNIEnv *env, jclass clazz) {
+    return (jlong)(intptr_t)device;
 }
 
 #ifdef __cplusplus
