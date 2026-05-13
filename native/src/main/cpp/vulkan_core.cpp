@@ -43,7 +43,7 @@ static int g_targetFPS = 500;
 // -----------------------------------------------------------------------------
 // Dummy function to force linker keep all Vulkan symbols
 // -----------------------------------------------------------------------------
-static void __attribute__((used)) keep_all_vulkan_symbols() {
+void __attribute__((used)) keep_all_vulkan_symbols() {
     VkInstance dummyInst = VK_NULL_HANDLE;
     VkDevice dummyDev = VK_NULL_HANDLE;
     VkQueue dummyQueue = VK_NULL_HANDLE;
@@ -88,7 +88,7 @@ static void __attribute__((used)) keep_all_vulkan_symbols() {
 }
 
 // -----------------------------------------------------------------------------
-// Helper functions (same as before)
+// Helper functions
 // -----------------------------------------------------------------------------
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
@@ -351,6 +351,7 @@ extern "C" bool initVulkan(ANativeWindow* window) {
     createPipelineCache();
     createFramebuffers();
     createCommandBuffers();
+    keep_all_vulkan_symbols();   // Force linker to keep all Vulkan code
     LOGD("Vulkan renderer fully initialized");
     return true;
 }
