@@ -75,31 +75,48 @@ public class PerformanceClient implements ClientModInitializer {
     }
 
     private void loadNativeOptimizations() {
-        System.loadLibrary("vulkan_renderer");
+        try {
+            System.loadLibrary("vulkan_renderer");
+        } catch (UnsatisfiedLinkError e) {
+            LOGGER.error("Could not load vulkan_renderer: " + e.getMessage());
+        }
         applyNativeOptimizations();
     }
 
     private void applyNativeOptimizations() {
-        VulkanBridge.setOptimizationFlags(optimizeEntities, optimizeBlocks, optimizeHits, optimizeCamera, fixReplayLag, true);
-        VulkanBridge.setTargetFPS(targetFPS);
+        try {
+            VulkanBridge.setOptimizationFlags(optimizeEntities, optimizeBlocks, optimizeHits, optimizeCamera, fixReplayLag, true);
+            VulkanBridge.setTargetFPS(targetFPS);
+        } catch (UnsatisfiedLinkError e) {
+            LOGGER.warn("Native optimization methods not available: " + e.getMessage());
+        }
     }
 
     // -------------------------------------------------------------------------
-    // Static methods called from mixins (must be public static)
+    // Static methods called from mixins (with exception safety)
     // -------------------------------------------------------------------------
     public static void applyRealtimeOptimizations() {
-        VulkanBridge.applyRealtimeOptimizations();
+        try {
+            VulkanBridge.applyRealtimeOptimizations();
+        } catch (UnsatisfiedLinkError e) {
+            LOGGER.debug("applyRealtimeOptimizations not available: " + e.getMessage());
+        }
     }
 
     public static void adjustFramePacing(long frameDelta) {
         if (targetFPS > 200 && frameDelta > 1000 / targetFPS + 5) {
             LOGGER.debug("Frame pacing adjusted: " + frameDelta);
         }
+        // No native call needed here – just logging
     }
 
     public static void onCameraMove(float deltaX, float deltaY) {
         if (optimizeCamera) {
-            VulkanBridge.onCameraMove(deltaX, deltaY);
+            try {
+                VulkanBridge.onCameraMove(deltaX, deltaY);
+            } catch (UnsatisfiedLinkError e) {
+                LOGGER.debug("onCameraMove not available");
+            }
         }
     }
 
@@ -116,13 +133,21 @@ public class PerformanceClient implements ClientModInitializer {
 
     public static void onBlockPlace() {
         if (optimizeBlocks) {
-            VulkanBridge.onBlockPlaceEvent();
+            try {
+                VulkanBridge.onBlockPlaceEvent();
+            } catch (UnsatisfiedLinkError e) {
+                LOGGER.debug("onBlockPlaceEvent not available");
+            }
         }
     }
 
     public static void onHit() {
         if (optimizeHits) {
-            VulkanBridge.onHitEvent();
+            try {
+                VulkanBridge.onHitEvent();
+            } catch (UnsatisfiedLinkError e) {
+                LOGGER.debug("onHitEvent not available");
+            }
         }
     }
 }
