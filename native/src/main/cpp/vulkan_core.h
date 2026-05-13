@@ -10,7 +10,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+extern VkDevice device;
 bool initVulkan(ANativeWindow* window);
 void renderFrame();
 void cleanupVulkan();
