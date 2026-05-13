@@ -20,7 +20,6 @@ void applyRealtimeOptimizations();
 void onBlockPlaceEvent();
 void onHitEvent();
 void onCameraMove(float deltaX, float deltaY);
-// New high-performance functions
 void enableMultiThreading(bool enable);
 void enableDynamicResolution(bool enable);
 
