@@ -17,13 +17,14 @@ public class PerformanceService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d("PerfService", "Service created");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.hasExtra("target_package")) {
             targetPackage = intent.getStringExtra("target_package");
-            Log.d("PerfService", "Target package: " + targetPackage);
+            Log.d("PerfService", "Target package selected: " + targetPackage);
         }
         startPerformanceServer();
         return START_STICKY;
@@ -33,8 +34,10 @@ public class PerformanceService extends Service {
         new Thread(() -> {
             try {
                 serverSocket = new ServerSocket(PORT);
+                Log.d("PerfService", "Socket server started on port " + PORT);
                 while (isRunning) {
                     Socket clientSocket = serverSocket.accept();
+                    Log.d("PerfService", "Client connected: " + clientSocket.getInetAddress());
                     handleClient(clientSocket);
                 }
             } catch (Exception e) {
@@ -49,10 +52,10 @@ public class PerformanceService extends Service {
             out.println(getPerformanceConfig());
             String line;
             while ((line = in.readLine()) != null) {
-                Log.d("PerfService", "Mod data: " + line);
+                Log.d("PerfService", "Mod stats: " + line);
             }
         } catch (Exception e) {
-            Log.e("PerfService", "Client handler error: " + e.getMessage());
+            Log.e("PerfService", "Client error: " + e.getMessage());
         }
     }
 
@@ -79,7 +82,7 @@ public class PerformanceService extends Service {
     @Override
     public void onDestroy() {
         isRunning = false;
-        try { if (serverSocket != null) serverSocket.close(); } catch (Exception e) { }
+        try { if (serverSocket != null) serverSocket.close(); } catch (Exception e) {}
         super.onDestroy();
     }
 }
