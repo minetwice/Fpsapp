@@ -4,6 +4,10 @@ project("vulkanrenderer")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Don't strip symbols – ensure all functions are kept
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fvisibility=default")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--no-gc-sections")
+
 find_library(log-lib log)
 find_library(android-lib android)
 find_library(vulkan-lib vulkan)
