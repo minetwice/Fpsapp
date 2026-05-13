@@ -362,7 +362,6 @@ extern "C" void setTargetFPS(int fps) {
 }
 
 extern "C" void applyRealtimeOptimizations() {
-    // Dummy but prevents stripping
     if (g_highPerf) LOGD("Realtime optimizations applied");
 }
 
@@ -386,8 +385,4 @@ extern "C" void onHitEvent() {
 
 extern "C" void onCameraMove(float deltaX, float deltaY) {
     if (g_optCamera) LOGD("Camera movement optimized");
-}
-
-extern "C" jlong getDevice() {
-    return (jlong)(intptr_t)device;
 }
