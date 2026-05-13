@@ -11,14 +11,7 @@ public class VulkanBridge {
             System.loadLibrary("vulkan_renderer");
             LOGGER.info("Native library loaded successfully");
         } catch (UnsatisfiedLinkError e) {
-            LOGGER.error("Failed to load vulkan_renderer from library path: " + e.getMessage());
-            // Try to load from absolute path (if you know where the launcher extracts libs)
-            try {
-                System.load("/data/data/git.artdeell.mojo/cache/natives/libvulkan_renderer.so");
-                LOGGER.info("Loaded from absolute path");
-            } catch (Throwable t) {
-                LOGGER.error("Also failed from absolute path: " + t.getMessage());
-            }
+            LOGGER.error("Failed to load vulkan_renderer: " + e.getMessage());
         }
     }
 
@@ -34,4 +27,6 @@ public class VulkanBridge {
     public static native void onBlockPlaceEvent();
     public static native void onHitEvent();
     public static native void onCameraMove(float deltaX, float deltaY);
+    public static native void enableMultiThreading(boolean enable);
+    public static native void enableDynamicResolution(boolean enable);
 }
