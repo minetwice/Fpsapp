@@ -15,62 +15,82 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private RecyclerView appList;
+    private RecyclerView gameList;
     private Button confirmButton;
     private TextView statusText;
     private AppListAdapter adapter;
     private String selectedPackage = null;
+
+    // List of known Minecraft Java launchers (add more as needed)
+    private static final String[] GAME_LAUNCHERS = {
+        "git.artdeell.mojo",
+        "net.kdt.pojavlaunch",
+        "com.foldcraft.launcher",
+        "com.zackpm.ps1",
+        "com.mojang.minecraftpe"  // for Bedrock, optional
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        appList = findViewById(R.id.appList);
+        gameList = findViewById(R.id.gameList);
         confirmButton = findViewById(R.id.confirmButton);
         statusText = findViewById(R.id.statusText);
 
-        appList.setLayoutManager(new LinearLayoutManager(this));
-        loadInstalledApps();
+        gameList.setLayoutManager(new LinearLayoutManager(this));
+        loadGameLaunchersOnly();
 
         confirmButton.setOnClickListener(v -> {
             if (selectedPackage != null) {
                 Intent serviceIntent = new Intent(this, PerformanceService.class);
                 serviceIntent.putExtra("target_package", selectedPackage);
                 startService(serviceIntent);
-                statusText.setText("✅ Service Started for: " + selectedPackage);
+                statusText.setText("✅ Boosting: " + selectedPackage);
             } else {
-                statusText.setText("⚠️ Please select a launcher first");
+                statusText.setText("⚠️ Select a game launcher first");
             }
         });
     }
 
-    private void loadInstalledApps() {
+    private void loadGameLaunchersOnly() {
         PackageManager pm = getPackageManager();
-        List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-        List<AppInfo> appListData = new ArrayList<>();
+        List<ApplicationInfo> allApps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        List<AppInfo> gameListData = new ArrayList<>();
 
-        for (ApplicationInfo app : packages) {
-            if (pm.getLaunchIntentForPackage(app.packageName) != null) {
+        for (String launchPackage : GAME_LAUNCHERS) {
+            try {
+                ApplicationInfo app = pm.getApplicationInfo(launchPackage, 0);
                 String name = pm.getApplicationLabel(app).toString();
                 Drawable icon = app.loadIcon(pm);
-                appListData.add(new AppInfo(name, app.packageName, icon));
+                gameListData.add(new AppInfo(name, launchPackage, icon));
+            } catch (PackageManager.NameNotFoundException ignored) {
+                // Not installed
             }
         }
 
-        adapter = new AppListAdapter(appListData, packageName -> {
-            selectedPackage = packageName;
-        });
-        appList.setAdapter(adapter);
+        // Also add any other app that has launcher intent and contains "minecraft" or "launcher"
+        for (ApplicationInfo app : allApps) {
+            if (pm.getLaunchIntentForPackage(app.packageName) != null) {
+                String name = app.packageName.toLowerCase();
+                if ((name.contains("minecraft") || name.contains("launcher") || name.contains("mojo") || name.contains("pojav")) &&
+                    !gameListData.stream().anyMatch(g -> g.packageName.equals(app.packageName))) {
+                    gameListData.add(new AppInfo(pm.getApplicationLabel(app).toString(), app.packageName, app.loadIcon(pm)));
+                }
+            }
+        }
+
+        adapter = new AppListAdapter(gameListData, pkg -> selectedPackage = pkg);
+        gameList.setAdapter(adapter);
     }
 
     static class AppInfo {
         String name, packageName;
         Drawable icon;
-
-        AppInfo(String name, String packageName, Drawable icon) {
+        AppInfo(String name, String pkg, Drawable icon) {
             this.name = name;
-            this.packageName = packageName;
+            this.packageName = pkg;
             this.icon = icon;
         }
     }
