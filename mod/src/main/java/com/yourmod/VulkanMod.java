@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class VulkanMod implements ModInitializer, ClientModInitializer {
-    public static final String MOD_ID = "vulkanmod";
+    public static final String MOD_ID = "vulkan_renderer";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     @Override
