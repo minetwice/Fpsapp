@@ -19,6 +19,7 @@ public class VulkanBridge {
     public static native boolean nativeInitVulkan(Object surface);
     public static native void nativeRenderFrame();
     public static native void nativeCleanup();
+    public static native long getDevice();
 
     // Optimization methods
     public static native void setOptimizationFlags(boolean entities, boolean blocks, boolean hits, boolean camera, boolean replay, boolean highPerf);
