@@ -117,12 +117,13 @@ static bool createLogicalDevice() {
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &priority;
 
-    const char* deviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME };
+    // Only require the swapchain extension; portability subset is optional and not always available
+    const char* deviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = 1;
     createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.enabledExtensionCount = 2;
+    createInfo.enabledExtensionCount = 1;
     createInfo.ppEnabledExtensionNames = deviceExtensions;
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
@@ -358,7 +359,7 @@ extern "C" void setTargetFPS(int fps) {
 extern "C" void applyRealtimeOptimizations() {
     if (g_highPerf) {
         if (g_targetFPS > 200) {
-            // Aggressive frame pacing
+            // Aggressive frame pacing already handled by limitFrameRate()
         }
         LOGD("Realtime optimizations applied");
     }
@@ -376,18 +377,18 @@ extern "C" void enableDynamicResolution(bool enable) {
 
 extern "C" void onBlockPlaceEvent() {
     if (g_optBlocks) {
-        LOGD("Block placement optimized");
+        LOGD("Block placement optimized (stub)");
     }
 }
 
 extern "C" void onHitEvent() {
     if (g_optHits) {
-        LOGD("Hit detection optimized");
+        LOGD("Hit detection optimized (stub)");
     }
 }
 
 extern "C" void onCameraMove(float deltaX, float deltaY) {
     if (g_optCamera) {
-        LOGD("Camera movement optimized");
+        LOGD("Camera movement optimized (stub)");
     }
 }
