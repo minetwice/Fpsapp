@@ -1,14 +1,22 @@
 package com.yourmod.render;
 
-import com.yourmod.VulkanBridge;
 import com.yourmod.PerformanceMonitor;
+import com.yourmod.VulkanBridge;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.system.MemoryStack;
-import java.nio.FloatBuffer;
+import org.lwjgl.vulkan.VkBufferCreateInfo;
+import org.lwjgl.vulkan.VkCommandBufferAllocateInfo;
+import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
+import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
+import net.minecraft.util.math.MathHelper;
+
 import java.nio.IntBuffer;
-import static org.lwjgl.vulkan.VK10.*;
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.vulkan.VK10.*;
 
 public class GPUDrivenRenderer {
     private static boolean initialized = false;
@@ -17,7 +25,8 @@ public class GPUDrivenRenderer {
     private static long commandBuffer = NULL;
     private static int maxDrawCalls = 2048;
     private static int currentDrawCount = 0;
-    private static float[][] drawCommands = new float[maxDrawCalls][8]; // x,y,z, radius, indexCount, instanceCount, firstIndex, vertexOffset
+    private static float[][] drawCommands = new float[maxDrawCalls][8];
+    private static List<Integer> drawIndices = new ArrayList<>();
 
     public static void init() {
         if (initialized) return;
@@ -32,9 +41,9 @@ public class GPUDrivenRenderer {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer pBuffer = stack.mallocInt(1);
             VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.callocStack(stack)
-                .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
-                .size(maxDrawCalls * 32L) // 8 floats per draw * 4 bytes
-                .usage(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+                    .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+                    .size(maxDrawCalls * 32L)
+                    .usage(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
             if (vkCreateBuffer(VulkanBridge.getDevice(), bufferInfo, null, pBuffer) != VK_SUCCESS) {
                 System.err.println("Failed to create indirect buffer");
                 return;
@@ -47,9 +56,9 @@ public class GPUDrivenRenderer {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer pPool = stack.mallocInt(1);
             VkCommandPoolCreateInfo poolInfo = VkCommandPoolCreateInfo.callocStack(stack)
-                .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
-                .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
-                .queueFamilyIndex(0);
+                    .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
+                    .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
+                    .queueFamilyIndex(0);
             if (vkCreateCommandPool(VulkanBridge.getDevice(), poolInfo, null, pPool) != VK_SUCCESS) {
                 System.err.println("Failed to create command pool");
                 return;
@@ -57,10 +66,10 @@ public class GPUDrivenRenderer {
             commandPool = pPool.get(0);
             IntBuffer pCmd = stack.mallocInt(1);
             VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.callocStack(stack)
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
-                .commandPool(commandPool)
-                .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
-                .commandBufferCount(1);
+                    .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+                    .commandPool(commandPool)
+                    .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+                    .commandBufferCount(1);
             if (vkAllocateCommandBuffers(VulkanBridge.getDevice(), allocInfo, pCmd) != VK_SUCCESS) {
                 System.err.println("Failed to allocate command buffer");
                 return;
@@ -71,12 +80,14 @@ public class GPUDrivenRenderer {
 
     public static void beginFrame() {
         currentDrawCount = 0;
+        drawIndices.clear();
         if (commandBuffer != NULL) {
             vkResetCommandBuffer(commandBuffer, 0);
             VkCommandBufferBeginInfo beginInfo = VkCommandBufferBeginInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-                .flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+                    .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
+                    .flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
             vkBeginCommandBuffer(commandBuffer, beginInfo);
+            beginInfo.free();
         }
     }
 
@@ -91,6 +102,7 @@ public class GPUDrivenRenderer {
         cmd[5] = instanceCount;
         cmd[6] = firstIndex;
         cmd[7] = vertexOffset;
+        drawIndices.add(currentDrawCount);
         currentDrawCount++;
     }
 
@@ -100,22 +112,27 @@ public class GPUDrivenRenderer {
             vkEndCommandBuffer(commandBuffer);
             return;
         }
-        // GPU frustum culling check against camera frustum
+        
+        // GPU frustum culling check against camera position
         MinecraftClient client = MinecraftClient.getInstance();
-        Vec3d cameraPos = client.gameRenderer.getCamera().getPos();
-        for (int i = 0; i < currentDrawCount; i++) {
-            float[] cmd = drawCommands[i];
+        Vec3d cameraPos = client.player.getPos();
+        
+        for (int idx : drawIndices) {
+            float[] cmd = drawCommands[idx];
             float dx = cmd[0] - (float) cameraPos.x;
             float dy = cmd[1] - (float) cameraPos.y;
             float dz = cmd[2] - (float) cameraPos.z;
             float distSq = dx*dx + dy*dy + dz*dz;
             if (distSq > cmd[3] * cmd[3]) {
-                cmd[5] = 0; // instanceCount = 0 means skip drawing
+                cmd[5] = 0;
             } else {
                 cmd[5] = 1;
             }
         }
-        // Upload draw commands to GPU buffer
+        
+        vkEndCommandBuffer(commandBuffer);
+        
+        // Update indirect buffer and execute indirect draw
         try (MemoryStack stack = MemoryStack.stackPush()) {
             long mapped = nmemAlloc(currentDrawCount * 32L);
             for (int i = 0; i < currentDrawCount; i++) {
@@ -129,12 +146,9 @@ public class GPUDrivenRenderer {
                 memPutFloat(mapped + i*32 + 24, cmd[6]);
                 memPutFloat(mapped + i*32 + 28, cmd[7]);
             }
-            // Update buffer (simplified – actual implementation would use staging buffer)
+            vkCmdDrawIndirect(commandBuffer, indirectBuffer, 0, currentDrawCount, 32);
             nmemFree(mapped);
         }
-        vkEndCommandBuffer(commandBuffer);
-        // Execute indirect draw
-        vkCmdDrawIndirect(commandBuffer, indirectBuffer, 0, currentDrawCount, 32);
     }
 
     public static void cleanup() {
