@@ -21,11 +21,15 @@ loom {
     mixin.useLegacyMixinAp = false
 }
 
+// Copy native library to the correct resources folder before building JAR
+task copyNativeLib(type: Copy) {
+    from("$rootDir/native/build/libvulkan_renderer.so")
+    into "src/main/resources/lib/arm64-v8a/"
+}
+
 processResources {
-    from(file("$rootDir/native/build/libvulkan_renderer.so")) {
-        into "lib/arm64-v8a/"
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE   // ADD THIS LINE
+    dependsOn copyNativeLib
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.withType(JavaCompile) {
