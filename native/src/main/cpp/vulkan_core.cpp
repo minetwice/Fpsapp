@@ -41,7 +41,54 @@ static bool g_dynamicResolution = true;
 static int g_targetFPS = 500;
 
 // -----------------------------------------------------------------------------
-// Helper functions
+// Dummy function to force linker keep all Vulkan symbols
+// -----------------------------------------------------------------------------
+static void __attribute__((used)) keep_all_vulkan_symbols() {
+    VkInstance dummyInst = VK_NULL_HANDLE;
+    VkDevice dummyDev = VK_NULL_HANDLE;
+    VkQueue dummyQueue = VK_NULL_HANDLE;
+    VkSurfaceKHR dummySurface = VK_NULL_HANDLE;
+    VkSwapchainKHR dummySwap = VK_NULL_HANDLE;
+    VkPipelineCache dummyCache = VK_NULL_HANDLE;
+    VkCommandPool dummyPool = VK_NULL_HANDLE;
+    VkRenderPass dummyRp = VK_NULL_HANDLE;
+    VkFramebuffer dummyFb = VK_NULL_HANDLE;
+    VkCommandBuffer dummyCmd = VK_NULL_HANDLE;
+
+    vkCreateInstance(nullptr, nullptr, &dummyInst);
+    vkEnumeratePhysicalDevices(dummyInst, nullptr, nullptr);
+    vkGetPhysicalDeviceProperties(physicalDevice, nullptr);
+    vkCreateDevice(physicalDevice, nullptr, nullptr, &dummyDev);
+    vkGetDeviceQueue(dummyDev, 0, 0, &dummyQueue);
+    vkCreateAndroidSurfaceKHR(dummyInst, nullptr, nullptr, &dummySurface);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, dummySurface, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, dummySurface, nullptr, nullptr);
+    vkCreateSwapchainKHR(dummyDev, nullptr, nullptr, &dummySwap);
+    vkGetSwapchainImagesKHR(dummyDev, dummySwap, nullptr, nullptr);
+    vkCreateRenderPass(dummyDev, nullptr, nullptr, &dummyRp);
+    vkCreatePipelineCache(dummyDev, nullptr, nullptr, &dummyCache);
+    vkCreateFramebuffer(dummyDev, nullptr, nullptr, &dummyFb);
+    vkCreateCommandPool(dummyDev, nullptr, nullptr, &dummyPool);
+    vkAllocateCommandBuffers(dummyDev, nullptr, &dummyCmd);
+    vkBeginCommandBuffer(dummyCmd, nullptr);
+    vkCmdBeginRenderPass(dummyCmd, nullptr, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdEndRenderPass(dummyCmd);
+    vkEndCommandBuffer(dummyCmd);
+    vkQueueSubmit(dummyQueue, 0, nullptr, VK_NULL_HANDLE);
+    vkQueueWaitIdle(dummyQueue);
+    vkQueuePresentKHR(dummyQueue, nullptr);
+    vkDestroyCommandPool(dummyDev, dummyPool, nullptr);
+    vkDestroyFramebuffer(dummyDev, dummyFb, nullptr);
+    vkDestroyPipelineCache(dummyDev, dummyCache, nullptr);
+    vkDestroyRenderPass(dummyDev, dummyRp, nullptr);
+    vkDestroySwapchainKHR(dummyDev, dummySwap, nullptr);
+    vkDestroySurfaceKHR(dummyInst, dummySurface, nullptr);
+    vkDestroyDevice(dummyDev, nullptr);
+    vkDestroyInstance(dummyInst, nullptr);
+}
+
+// -----------------------------------------------------------------------------
+// Helper functions (same as before)
 // -----------------------------------------------------------------------------
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
@@ -364,7 +411,6 @@ extern "C" void setTargetFPS(int fps) {
 
 extern "C" void applyRealtimeOptimizations() {
     if (g_highPerf) {
-        // Non‑trivial call to prevent stripping
         vkQueueWaitIdle(graphicsQueue);
         LOGD("Realtime optimizations applied");
     }
