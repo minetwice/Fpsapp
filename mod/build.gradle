@@ -21,23 +21,6 @@ loom {
     mixin.useLegacyMixinAp = false
 }
 
-// Force include native library after JAR is built
-tasks.jar {
-    doLast {
-        def nativeFile = file("$rootDir/native/build/libvulkan_renderer.so")
-        if (nativeFile.exists()) {
-            println "Injecting ${nativeFile} into JAR"
-            ant.zip(update: true, destfile: archiveFile.get().asFile, fileencoding: 'UTF-8') {
-                fileset(file: nativeFile) {
-                    include(name: "lib/arm64-v8a/libvulkan_renderer.so")
-                }
-            }
-        } else {
-            println "ERROR: Native library not found at ${nativeFile}"
-        }
-    }
-}
-
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
     options.release = 21
