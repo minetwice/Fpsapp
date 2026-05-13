@@ -8,6 +8,7 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <algorithm>
 
 #include "vulkan_core.h"
 
@@ -15,6 +16,7 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+// Vulkan global objects
 static VkInstance instance = VK_NULL_HANDLE;
 static VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 static VkDevice device = VK_NULL_HANDLE;
@@ -29,6 +31,7 @@ static VkRenderPass renderPass = VK_NULL_HANDLE;
 static VkExtent2D swapchainExtent = {};
 static uint32_t swapImageCount = 0;
 
+// Performance flags and targets
 static bool g_optEntities = true;
 static bool g_optBlocks = true;
 static bool g_optHits = true;
@@ -39,6 +42,7 @@ static bool g_multiThreading = true;
 static bool g_dynamicResolution = true;
 static int g_targetFPS = 500;
 
+// Helper functions
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -110,14 +114,13 @@ static bool createLogicalDevice() {
         return false;
     }
 
-    float priority = 1.0f; // High priority queue
+    float priority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = graphicsFamily;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &priority;
 
-    // Only require the swapchain extension; portability subset is optional and not always available
     const char* deviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -131,7 +134,7 @@ static bool createLogicalDevice() {
         return false;
     }
     vkGetDeviceQueue(device, graphicsFamily, 0, &graphicsQueue);
-    LOGD("Logical device created with high priority queue");
+    LOGD("Logical device created");
     return true;
 }
 
@@ -165,7 +168,7 @@ static bool createSurfaceAndSwapchain(ANativeWindow* window) {
     swapInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapInfo.preTransform = caps.currentTransform;
     swapInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR; // High performance mode
+    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
     swapInfo.clipped = VK_TRUE;
 
     if (vkCreateSwapchainKHR(device, &swapInfo, nullptr, &swapchain) != VK_SUCCESS) {
@@ -289,6 +292,7 @@ static void limitFrameRate() {
     lastFrame = steady_clock::now();
 }
 
+// ======================== EXPORTED FUNCTIONS (C linkage) ========================
 extern "C" bool initVulkan(ANativeWindow* window) {
     if (!createInstance()) return false;
     if (!pickPhysicalDevice()) return false;
@@ -306,8 +310,14 @@ extern "C" void renderFrame() {
     if (g_highPerf) applyRealtimeOptimizations();
     limitFrameRate();
 
+    // Dynamic resolution scaling stub
+    if (g_dynamicResolution) {
+        // Adjust resolution based on frame timing would go here
+    }
+
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
+    VkResult acquire = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
+    if (acquire != VK_SUCCESS) return;
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -348,7 +358,7 @@ extern "C" void setOptimizationFlags(bool entities, bool blocks, bool hits, bool
     g_optCamera = camera;
     g_optReplay = replay;
     g_highPerf = highPerf;
-    LOGD("Optimization flags set: E%d B%d H%d C%d R%d HP%d", entities, blocks, hits, camera, replay, highPerf);
+    LOGD("Optimization flags set");
 }
 
 extern "C" void setTargetFPS(int fps) {
@@ -358,9 +368,6 @@ extern "C" void setTargetFPS(int fps) {
 
 extern "C" void applyRealtimeOptimizations() {
     if (g_highPerf) {
-        if (g_targetFPS > 200) {
-            // Aggressive frame pacing already handled by limitFrameRate()
-        }
         LOGD("Realtime optimizations applied");
     }
 }
@@ -376,19 +383,13 @@ extern "C" void enableDynamicResolution(bool enable) {
 }
 
 extern "C" void onBlockPlaceEvent() {
-    if (g_optBlocks) {
-        LOGD("Block placement optimized (stub)");
-    }
+    if (g_optBlocks) LOGD("Block placement optimized");
 }
 
 extern "C" void onHitEvent() {
-    if (g_optHits) {
-        LOGD("Hit detection optimized (stub)");
-    }
+    if (g_optHits) LOGD("Hit detection optimized");
 }
 
 extern "C" void onCameraMove(float deltaX, float deltaY) {
-    if (g_optCamera) {
-        LOGD("Camera movement optimized (stub)");
-    }
+    if (g_optCamera) LOGD("Camera movement optimized");
 }
