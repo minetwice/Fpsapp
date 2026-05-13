@@ -1,7 +1,10 @@
 package com.yourapp;
 
+import android.app.ActivityManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import java.io.*;
@@ -17,32 +20,41 @@ public class PerformanceService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d("PerfService", "Service created");
+        Log.d("PerfService", "Performance Booster Service Started");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.hasExtra("target_package")) {
             targetPackage = intent.getStringExtra("target_package");
-            Log.d("PerfService", "Target package selected: " + targetPackage);
+            clearGameCache(); // Clear cache of selected launcher
         }
         startPerformanceServer();
         return START_STICKY;
+    }
+
+    private void clearGameCache() {
+        try {
+            // Open the app's settings page so user can manually clear cache (no root needed)
+            Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(android.net.Uri.parse("package:" + targetPackage));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            Log.d("PerfService", "Opened cache settings for " + targetPackage);
+        } catch (Exception e) {
+            Log.e("PerfService", "Could not open cache settings: " + e.getMessage());
+        }
     }
 
     private void startPerformanceServer() {
         new Thread(() -> {
             try {
                 serverSocket = new ServerSocket(PORT);
-                Log.d("PerfService", "Socket server started on port " + PORT);
                 while (isRunning) {
                     Socket clientSocket = serverSocket.accept();
-                    Log.d("PerfService", "Client connected: " + clientSocket.getInetAddress());
                     handleClient(clientSocket);
                 }
-            } catch (Exception e) {
-                Log.e("PerfService", "Server error: " + e.getMessage());
-            }
+            } catch (Exception e) { Log.e("PerfService", "Server error: " + e.getMessage()); }
         }).start();
     }
 
@@ -53,25 +65,19 @@ public class PerformanceService extends Service {
             String line;
             while ((line = in.readLine()) != null) {
                 Log.d("PerfService", "Mod stats: " + line);
+                // dynamic tuning based on FPS can be added here
             }
-        } catch (Exception e) {
-            Log.e("PerfService", "Client error: " + e.getMessage());
-        }
+        } catch (Exception e) { Log.e("PerfService", "Client error: " + e.getMessage()); }
     }
 
     private String getPerformanceConfig() {
         return "{"
-                + "\"target_package\":\"" + targetPackage + "\","
                 + "\"optimize_entities\":true,"
-                + "\"optimize_blocks\":true,"
                 + "\"optimize_hits\":true,"
                 + "\"optimize_camera\":true,"
-                + "\"fix_replay_lag\":true,"
-                + "\"cpu_governor\":\"performance\","
-                + "\"multi_threading\":true,"
                 + "\"dynamic_resolution\":true,"
-                + "\"jvm_heap_start\":\"4096M\","
-                + "\"jvm_heap_max\":\"8192M\","
+                + "\"multi_threading\":true,"
+                + "\"smart_culling\":true,"
                 + "\"target_fps\":500"
                 + "}";
     }
