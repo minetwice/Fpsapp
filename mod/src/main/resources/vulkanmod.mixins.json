@@ -4,7 +4,11 @@
   "package": "com.yourmod.mixin",
   "compatibilityLevel": "JAVA_17",
   "refmap": "vulkanmod.refmap.json",
-  "client": ["GameRendererMixin"],
+  "client": [
+    "GameRendererMixin",
+    "EntityRenderDispatcherMixin",
+    "ChunkBuilderMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
