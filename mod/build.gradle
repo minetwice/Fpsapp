@@ -21,6 +21,14 @@ loom {
     mixin.useLegacyMixinAp = false
 }
 
+// This copies the .so from native/build into the JAR's resources
+processResources {
+    from("$rootDir/native/build/libvulkan_renderer.so") {
+        into "lib/arm64-v8a/"
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
     options.release = 21
