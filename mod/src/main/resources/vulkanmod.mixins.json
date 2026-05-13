@@ -5,7 +5,10 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "vulkanmod.refmap.json",
   "client": [
-    "GameRendererMixin"
+    "GameRendererMixin",
+    "ClientPlayerEntityMixin",
+    "LivingEntityMixin",
+    "EntityRenderDispatcherMixin"
   ],
   "injectors": {
     "defaultRequire": 1
