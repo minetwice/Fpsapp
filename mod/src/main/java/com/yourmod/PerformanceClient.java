@@ -20,6 +20,7 @@ public class PerformanceClient implements ClientModInitializer {
     private static boolean replayActive = false;
     private static boolean multiThreading = true;
     private static boolean dynamicResolution = true;
+    private static boolean smartCulling = true;
 
     @Override
     public void onInitializeClient() {
@@ -66,6 +67,7 @@ public class PerformanceClient implements ClientModInitializer {
         if (json.contains("target_fps")) targetFPS = Integer.parseInt(json.split("target_fps\":")[1].split(",")[0]);
         if (json.contains("multi_threading")) multiThreading = json.contains("\"multi_threading\":true");
         if (json.contains("dynamic_resolution")) dynamicResolution = json.contains("\"dynamic_resolution\":true");
+        if (json.contains("smart_culling")) smartCulling = json.contains("\"smart_culling\":true");
     }
 
     private void applyNativeSettings() {
@@ -83,9 +85,7 @@ public class PerformanceClient implements ClientModInitializer {
     public static void applyRealtimeOptimizations() {
         try {
             VulkanBridge.applyRealtimeOptimizations();
-        } catch (UnsatisfiedLinkError e) {
-            // ignore
-        }
+        } catch (UnsatisfiedLinkError e) { /* ignore */ }
     }
 
     public static void adjustFramePacing(long frameDelta) {
@@ -106,4 +106,6 @@ public class PerformanceClient implements ClientModInitializer {
     }
 
     public static boolean isReplayActive() { return replayActive; }
+
+    public static boolean isSmartCullingEnabled() { return smartCulling; }
 }
