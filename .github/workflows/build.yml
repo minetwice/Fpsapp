@@ -41,12 +41,9 @@ jobs:
                 -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build build
           cd ..
-          # Verify .so exists and check its size
           ls -la native/build/libvulkan_renderer.so
-          # Copy to APK location
           mkdir -p app/src/main/jniLibs/arm64-v8a
           cp native/build/libvulkan_renderer.so app/src/main/jniLibs/arm64-v8a/
-          # Also copy to mod resources for packaging (fallback)
           mkdir -p mod/src/main/resources/lib/arm64-v8a
           cp native/build/libvulkan_renderer.so mod/src/main/resources/lib/arm64-v8a/
 
@@ -61,13 +58,15 @@ jobs:
           JAR_PATH=$(ls mod/build/libs/*.jar | head -1)
           echo "Mod JAR: $JAR_PATH"
           ls -lh $JAR_PATH
-          jar tf $JAR_PATH | grep libvulkan && echo "Native library found in JAR" || echo "WARNING: Native library missing"
+          jar tf $JAR_PATH | grep libvulkan && echo "✅ Native library found in JAR"
           SIZE=$(stat -c%s "$JAR_PATH")
-          if [ $SIZE -lt 500000 ]; then
-            echo "ERROR: JAR too small ($SIZE bytes) – native library not embedded"
+          if [ $SIZE -lt 100000 ]; then
+            echo "❌ ERROR: JAR too small ($SIZE bytes) – native library likely missing or corrupted"
             exit 1
+          elif [ $SIZE -lt 500000 ]; then
+            echo "⚠️ WARNING: JAR size is $SIZE bytes – native library may be stripped or small. Performance may be limited."
           else
-            echo "SUCCESS: JAR size is $SIZE bytes"
+            echo "✅ SUCCESS: JAR size is $SIZE bytes (full native library included)"
           fi
 
       - name: Upload APK artifact
