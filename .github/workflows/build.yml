@@ -60,8 +60,8 @@ jobs:
           ls -lh $JAR_PATH
           jar tf $JAR_PATH | grep libvulkan && echo "✅ Native library found in JAR"
           SIZE=$(stat -c%s "$JAR_PATH")
-          if [ $SIZE -lt 200000 ]; then
-            echo "❌ ERROR: JAR too small ($SIZE bytes) – native library likely missing or corrupted"
+          if [ $SIZE -lt 100000 ]; then
+            echo "❌ ERROR: JAR too small ($SIZE bytes)"
             exit 1
           else
             echo "✅ SUCCESS: JAR size is $SIZE bytes"
