@@ -18,11 +18,14 @@ public class PerformanceClient implements ClientModInitializer {
     private static boolean fixReplayLag = true;
     private static int targetFPS = 500;
     private static boolean replayActive = false;
+    private static boolean multiThreading = true;
+    private static boolean dynamicResolution = true;
 
     @Override
     public void onInitializeClient() {
         connectToOptimizerApp();
         loadNativeOptimizations();
+        LOGGER.info("PerformanceClient initialized with target FPS: " + targetFPS);
     }
 
     private void connectToOptimizerApp() {
@@ -72,6 +75,12 @@ public class PerformanceClient implements ClientModInitializer {
         if (json.contains("target_fps")) {
             targetFPS = Integer.parseInt(json.split("target_fps\":")[1].split(",")[0]);
         }
+        if (json.contains("multi_threading")) {
+            multiThreading = json.contains("\"multi_threading\":true");
+        }
+        if (json.contains("dynamic_resolution")) {
+            dynamicResolution = json.contains("\"dynamic_resolution\":true");
+        }
     }
 
     private void loadNativeOptimizations() {
@@ -87,14 +96,13 @@ public class PerformanceClient implements ClientModInitializer {
         try {
             VulkanBridge.setOptimizationFlags(optimizeEntities, optimizeBlocks, optimizeHits, optimizeCamera, fixReplayLag, true);
             VulkanBridge.setTargetFPS(targetFPS);
+            VulkanBridge.enableMultiThreading(multiThreading);
+            VulkanBridge.enableDynamicResolution(dynamicResolution);
         } catch (UnsatisfiedLinkError e) {
             LOGGER.warn("Native optimization methods not available: " + e.getMessage());
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Static methods called from mixins (with exception safety)
-    // -------------------------------------------------------------------------
     public static void applyRealtimeOptimizations() {
         try {
             VulkanBridge.applyRealtimeOptimizations();
@@ -107,7 +115,6 @@ public class PerformanceClient implements ClientModInitializer {
         if (targetFPS > 200 && frameDelta > 1000 / targetFPS + 5) {
             LOGGER.debug("Frame pacing adjusted: " + frameDelta);
         }
-        // No native call needed here – just logging
     }
 
     public static void onCameraMove(float deltaX, float deltaY) {
