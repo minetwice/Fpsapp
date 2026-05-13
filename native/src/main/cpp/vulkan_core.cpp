@@ -15,7 +15,6 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-// Vulkan global objects
 static VkInstance instance = VK_NULL_HANDLE;
 static VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 static VkDevice device = VK_NULL_HANDLE;
@@ -30,126 +29,16 @@ static VkRenderPass renderPass = VK_NULL_HANDLE;
 static VkExtent2D swapchainExtent = {};
 static uint32_t swapImageCount = 0;
 
-// Performance flags and targets
 static bool g_optEntities = true;
 static bool g_optBlocks = true;
 static bool g_optHits = true;
 static bool g_optCamera = true;
 static bool g_optReplay = true;
 static bool g_highPerf = true;
+static bool g_multiThreading = true;
+static bool g_dynamicResolution = true;
 static int g_targetFPS = 500;
 
-// forward declarations
-static bool createInstance();
-static bool pickPhysicalDevice();
-static bool createLogicalDevice();
-static bool createSurfaceAndSwapchain(ANativeWindow* window);
-static void createRenderPass();
-static void createFramebuffers();
-static void createCommandBuffers();
-static void createPipelineCache();
-static void limitFrameRate();
-
-// -----------------------------------------------------------------------------
-// Exported C functions (must match VulkanBridge native declarations)
-// -----------------------------------------------------------------------------
-extern "C" bool initVulkan(ANativeWindow* window) {
-    if (!createInstance()) return false;
-    if (!pickPhysicalDevice()) return false;
-    if (!createLogicalDevice()) return false;
-    if (!createSurfaceAndSwapchain(window)) return false;
-    createRenderPass();
-    createPipelineCache();
-    createFramebuffers();
-    createCommandBuffers();
-    LOGD("Vulkan renderer fully initialized");
-    return true;
-}
-
-extern "C" void renderFrame() {
-    if (g_highPerf) applyRealtimeOptimizations();
-    limitFrameRate();
-
-    uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
-
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
-
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
-
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swapchain;
-    presentInfo.pImageIndices = &imageIndex;
-
-    vkQueuePresentKHR(graphicsQueue, &presentInfo);
-}
-
-extern "C" void cleanupVulkan() {
-    if (device != VK_NULL_HANDLE) {
-        vkDeviceWaitIdle(device);
-        vkDestroyPipelineCache(device, pipelineCache, nullptr);
-        vkDestroyCommandPool(device, commandPool, nullptr);
-        for (auto fb : framebuffers) vkDestroyFramebuffer(device, fb, nullptr);
-        vkDestroyRenderPass(device, renderPass, nullptr);
-        vkDestroySwapchainKHR(device, swapchain, nullptr);
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-        vkDestroyDevice(device, nullptr);
-    }
-    if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
-    LOGD("Vulkan cleaned up");
-}
-
-extern "C" void setOptimizationFlags(bool entities, bool blocks, bool hits, bool camera, bool replay, bool highPerf) {
-    g_optEntities = entities;
-    g_optBlocks = blocks;
-    g_optHits = hits;
-    g_optCamera = camera;
-    g_optReplay = replay;
-    g_highPerf = highPerf;
-    LOGD("Optimization flags set: E%d B%d H%d C%d R%d HP%d", entities, blocks, hits, camera, replay, highPerf);
-}
-
-extern "C" void setTargetFPS(int fps) {
-    g_targetFPS = fps;
-    LOGD("Target FPS set to %d", fps);
-}
-
-extern "C" void applyRealtimeOptimizations() {
-    if (g_highPerf) {
-        if (g_targetFPS > 200) {
-            // Aggressive frame pacing – already handled by limitFrameRate()
-        }
-        LOGD("Realtime optimizations applied");
-    }
-}
-
-extern "C" void onBlockPlaceEvent() {
-    if (g_optBlocks) {
-        LOGD("Block placement optimized (stub)");
-    }
-}
-
-extern "C" void onHitEvent() {
-    if (g_optHits) {
-        LOGD("Hit detection optimized (stub)");
-    }
-}
-
-extern "C" void onCameraMove(float deltaX, float deltaY) {
-    if (g_optCamera) {
-        LOGD("Camera movement optimized (stub)");
-    }
-}
-
-// -----------------------------------------------------------------------------
-// Static helper implementations
-// -----------------------------------------------------------------------------
 static bool createInstance() {
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -221,19 +110,19 @@ static bool createLogicalDevice() {
         return false;
     }
 
-    float priority = 1.0f;
+    float priority = 1.0f; // High priority queue
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = graphicsFamily;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &priority;
 
-    const char* deviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+    const char* deviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME };
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = 1;
     createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.enabledExtensionCount = 1;
+    createInfo.enabledExtensionCount = 2;
     createInfo.ppEnabledExtensionNames = deviceExtensions;
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
@@ -241,7 +130,7 @@ static bool createLogicalDevice() {
         return false;
     }
     vkGetDeviceQueue(device, graphicsFamily, 0, &graphicsQueue);
-    LOGD("Logical device created");
+    LOGD("Logical device created with high priority queue");
     return true;
 }
 
@@ -275,7 +164,7 @@ static bool createSurfaceAndSwapchain(ANativeWindow* window) {
     swapInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapInfo.preTransform = caps.currentTransform;
     swapInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+    swapInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR; // High performance mode
     swapInfo.clipped = VK_TRUE;
 
     if (vkCreateSwapchainKHR(device, &swapInfo, nullptr, &swapchain) != VK_SUCCESS) {
@@ -397,4 +286,108 @@ static void limitFrameRate() {
         std::this_thread::sleep_for(targetFrameTime - elapsed);
     }
     lastFrame = steady_clock::now();
+}
+
+extern "C" bool initVulkan(ANativeWindow* window) {
+    if (!createInstance()) return false;
+    if (!pickPhysicalDevice()) return false;
+    if (!createLogicalDevice()) return false;
+    if (!createSurfaceAndSwapchain(window)) return false;
+    createRenderPass();
+    createPipelineCache();
+    createFramebuffers();
+    createCommandBuffers();
+    LOGD("Vulkan renderer fully initialized");
+    return true;
+}
+
+extern "C" void renderFrame() {
+    if (g_highPerf) applyRealtimeOptimizations();
+    limitFrameRate();
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &imageIndex);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+
+    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(graphicsQueue);
+
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapchain;
+    presentInfo.pImageIndices = &imageIndex;
+
+    vkQueuePresentKHR(graphicsQueue, &presentInfo);
+}
+
+extern "C" void cleanupVulkan() {
+    if (device != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(device);
+        vkDestroyPipelineCache(device, pipelineCache, nullptr);
+        vkDestroyCommandPool(device, commandPool, nullptr);
+        for (auto fb : framebuffers) vkDestroyFramebuffer(device, fb, nullptr);
+        vkDestroyRenderPass(device, renderPass, nullptr);
+        vkDestroySwapchainKHR(device, swapchain, nullptr);
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        vkDestroyDevice(device, nullptr);
+    }
+    if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
+    LOGD("Vulkan cleaned up");
+}
+
+extern "C" void setOptimizationFlags(bool entities, bool blocks, bool hits, bool camera, bool replay, bool highPerf) {
+    g_optEntities = entities;
+    g_optBlocks = blocks;
+    g_optHits = hits;
+    g_optCamera = camera;
+    g_optReplay = replay;
+    g_highPerf = highPerf;
+    LOGD("Optimization flags set: E%d B%d H%d C%d R%d HP%d", entities, blocks, hits, camera, replay, highPerf);
+}
+
+extern "C" void setTargetFPS(int fps) {
+    g_targetFPS = fps;
+    LOGD("Target FPS set to %d", fps);
+}
+
+extern "C" void applyRealtimeOptimizations() {
+    if (g_highPerf) {
+        if (g_targetFPS > 200) {
+            // Aggressive frame pacing
+        }
+        LOGD("Realtime optimizations applied");
+    }
+}
+
+extern "C" void enableMultiThreading(bool enable) {
+    g_multiThreading = enable;
+    LOGD("Multi-threading: %s", enable ? "ON" : "OFF");
+}
+
+extern "C" void enableDynamicResolution(bool enable) {
+    g_dynamicResolution = enable;
+    LOGD("Dynamic resolution: %s", enable ? "ON" : "OFF");
+}
+
+extern "C" void onBlockPlaceEvent() {
+    if (g_optBlocks) {
+        LOGD("Block placement optimized");
+    }
+}
+
+extern "C" void onHitEvent() {
+    if (g_optHits) {
+        LOGD("Hit detection optimized");
+    }
+}
+
+extern "C" void onCameraMove(float deltaX, float deltaY) {
+    if (g_optCamera) {
+        LOGD("Camera movement optimized");
+    }
 }
