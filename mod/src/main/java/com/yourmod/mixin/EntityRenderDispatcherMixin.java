@@ -5,7 +5,6 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,14 +17,13 @@ public class EntityRenderDispatcherMixin {
     private <E extends Entity> void onRender(E entity, double x, double y, double z, float yaw, float tickDelta,
                                              MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light,
                                              CallbackInfo ci) {
-        // Get camera position from the render dispatcher
-        Vec3d cameraPos = ((EntityRenderDispatcher)(Object)this).camera.getPos();
-        double dx = entity.getX() - cameraPos.x;
-        double dy = entity.getY() - cameraPos.y;
-        double dz = entity.getZ() - cameraPos.z;
-        double distanceSq = dx*dx + dy*dy + dz*dz;
+        // Get camera position via render dispatcher's camera field (obfuscated name? Use accessor)
+        // For simplicity, we just skip if distance > threshold using entity's position relative to player
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        if (client.player == null) return;
+        double distSq = entity.squaredDistanceTo(client.player);
         double maxDist = PerformanceMonitor.getEntityCullingDistance();
-        if (distanceSq > maxDist * maxDist) {
+        if (distSq > maxDist * maxDist) {
             ci.cancel();
         }
     }
