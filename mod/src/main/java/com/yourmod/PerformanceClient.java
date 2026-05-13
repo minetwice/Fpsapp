@@ -1,9 +1,11 @@
 package com.yourmod;
 
+import com.yourmod.pvp.PVPOptimizer;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.Socket;
 
@@ -20,11 +22,12 @@ public class PerformanceClient implements ClientModInitializer {
     private static boolean replayActive = false;
     private static boolean multiThreading = true;
     private static boolean dynamicResolution = true;
-    private static boolean smartCulling = true;
 
     @Override
     public void onInitializeClient() {
         LOGGER.info("PerformanceClient initializing...");
+        // Initialize PVP Optimizer
+        PVPOptimizer.init();
         connectToOptimizerApp();
         applyNativeSettings();
     }
@@ -36,14 +39,14 @@ public class PerformanceClient implements ClientModInitializer {
                     LOGGER.info("Connected to APK performance service");
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    
+
                     String configJson = in.readLine();
                     if (configJson != null) {
                         parseConfig(configJson);
                         applyNativeSettings();
                         LOGGER.info("Applied config: " + configJson);
                     }
-                    
+
                     while (true) {
                         int fps = MinecraftClient.getInstance().getCurrentFps();
                         long mem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
@@ -67,29 +70,16 @@ public class PerformanceClient implements ClientModInitializer {
         if (json.contains("target_fps")) targetFPS = Integer.parseInt(json.split("target_fps\":")[1].split(",")[0]);
         if (json.contains("multi_threading")) multiThreading = json.contains("\"multi_threading\":true");
         if (json.contains("dynamic_resolution")) dynamicResolution = json.contains("\"dynamic_resolution\":true");
-        if (json.contains("smart_culling")) smartCulling = json.contains("\"smart_culling\":true");
+
+        // PVP specific flags (can be sent from APK)
+        if (json.contains("pvp_mode")) {
+            boolean pvp = json.contains("\"pvp_mode\":true");
+            enablePVPMode(pvp);
+        }
+        if (json.contains("hit_lag_reduction")) setHitLagReduction(json.contains("\"hit_lag_reduction\":true"));
+        if (json.contains("knockback_opt")) setKnockbackOptimization(json.contains("\"knockback_opt\":true"));
+        if (json.contains("crit_lag_fix")) setCritLagFix(json.contains("\"crit_lag_fix\":true"));
     }
-
-    public static void enablePVPMode(boolean enable) {
-    com.yourmod.pvp.PVPOptimizer.setEnabled(enable);
-    if (enable) {
-        LOGGER.info("PVP Optimization Mode ENABLED - lag reduction active");
-    } else {
-        LOGGER.info("PVP Optimization Mode DISABLED");
-    }
-}
-
-public static void setHitLagReduction(boolean enable) {
-    com.yourmod.pvp.PVPOptimizer.setHitLagReduction(enable);
-}
-
-public static void setKnockbackOptimization(boolean enable) {
-    com.yourmod.pvp.PVPOptimizer.setKnockbackOptimization(enable);
-}
-
-public static void setCritLagFix(boolean enable) {
-    com.yourmod.pvp.PVPOptimizer.setCritLagFix(enable);
-}
 
     private void applyNativeSettings() {
         try {
@@ -103,6 +93,9 @@ public static void setCritLagFix(boolean enable) {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Public API for PVP optimization (can be called from mixins)
+    // -------------------------------------------------------------------------
     public static void applyRealtimeOptimizations() {
         try {
             VulkanBridge.applyRealtimeOptimizations();
@@ -128,5 +121,24 @@ public static void setCritLagFix(boolean enable) {
 
     public static boolean isReplayActive() { return replayActive; }
 
-    public static boolean isSmartCullingEnabled() { return smartCulling; }
+    // PVP mode toggles
+    public static void enablePVPMode(boolean enable) {
+        PVPOptimizer.setEnabled(enable);
+        LOGGER.info("PVP Optimization Mode " + (enable ? "ENABLED" : "DISABLED"));
+    }
+
+    public static void setHitLagReduction(boolean enable) {
+        PVPOptimizer.setHitLagReduction(enable);
+        LOGGER.debug("Hit lag reduction: " + enable);
+    }
+
+    public static void setKnockbackOptimization(boolean enable) {
+        PVPOptimizer.setKnockbackOptimization(enable);
+        LOGGER.debug("Knockback optimization: " + enable);
+    }
+
+    public static void setCritLagFix(boolean enable) {
+        PVPOptimizer.setCritLagFix(enable);
+        LOGGER.debug("Crit lag fix: " + enable);
+    }
 }
