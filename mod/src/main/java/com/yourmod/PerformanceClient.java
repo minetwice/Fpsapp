@@ -70,6 +70,27 @@ public class PerformanceClient implements ClientModInitializer {
         if (json.contains("smart_culling")) smartCulling = json.contains("\"smart_culling\":true");
     }
 
+    public static void enablePVPMode(boolean enable) {
+    com.yourmod.pvp.PVPOptimizer.setEnabled(enable);
+    if (enable) {
+        LOGGER.info("PVP Optimization Mode ENABLED - lag reduction active");
+    } else {
+        LOGGER.info("PVP Optimization Mode DISABLED");
+    }
+}
+
+public static void setHitLagReduction(boolean enable) {
+    com.yourmod.pvp.PVPOptimizer.setHitLagReduction(enable);
+}
+
+public static void setKnockbackOptimization(boolean enable) {
+    com.yourmod.pvp.PVPOptimizer.setKnockbackOptimization(enable);
+}
+
+public static void setCritLagFix(boolean enable) {
+    com.yourmod.pvp.PVPOptimizer.setCritLagFix(enable);
+}
+
     private void applyNativeSettings() {
         try {
             VulkanBridge.setOptimizationFlags(optimizeEntities, optimizeBlocks, optimizeHits, optimizeCamera, fixReplayLag, true);
