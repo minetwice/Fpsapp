@@ -21,7 +21,7 @@ loom {
     mixin.useLegacyMixinAp = false
 }
 
-// Ensure native library is built before we try to copy it
+// 1. Build native library using CMake
 task buildNative(type: Exec) {
     workingDir rootProject.projectDir
     commandLine 'bash', '-c', '''
@@ -32,29 +32,24 @@ task buildNative(type: Exec) {
     '''
 }
 
-// Copy the .so to a temporary directory that will be included in the JAR
-task prepareNativeLib(type: Copy) {
+// 2. Copy the .so to the resources directory (where Loom will package it)
+task copyNativeToResources(type: Copy) {
     dependsOn buildNative
     from("$rootDir/native/build/libvulkan_renderer.so")
-    into "$buildDir/tmp/native/lib/arm64-v8a/"
+    into "$projectDir/src/main/resources/lib/arm64-v8a/"
 }
 
-// Include the native library directly in the JAR
-jar {
-    dependsOn prepareNativeLib
-    from("$buildDir/tmp/native") {
-        into "/"
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
+// 3. Ensure resources are processed after copying
 processResources {
-    dependsOn prepareNativeLib
-    from("$buildDir/tmp/native") {
-        into "/"
-    }
+    dependsOn copyNativeToResources
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
+
+// 4. Clean up the copied .so after build (optional)
+task cleanNativeFromResources(type: Delete) {
+    delete "$projectDir/src/main/resources/lib"
+}
+clean.dependsOn cleanNativeFromResources
 
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
