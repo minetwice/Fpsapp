@@ -9,6 +9,8 @@
 #include <chrono>
 #include <mutex>
 
+#include "vulkan_core.h"
+
 #define LOG_TAG "VulkanCore"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -51,9 +53,9 @@ static void createPipelineCache();
 static void limitFrameRate();
 
 // -----------------------------------------------------------------------------
-// Performance optimization functions (must be defined before renderFrame)
+// Performance optimization function (defined early to avoid missing symbol)
 // -----------------------------------------------------------------------------
-static void applyRealtimeOptimizations() {
+extern "C" void applyRealtimeOptimizations() {
     if (g_highPerf) {
         if (g_targetFPS > 200) {
             // Aggressive frame pacing – already handled by limitFrameRate()
@@ -315,7 +317,7 @@ static void limitFrameRate() {
 }
 
 // -----------------------------------------------------------------------------
-// Exported functions (must have C linkage)
+// Exported functions (C linkage)
 // -----------------------------------------------------------------------------
 extern "C" bool initVulkan(ANativeWindow* window) {
     if (!createInstance()) return false;
