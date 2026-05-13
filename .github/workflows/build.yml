@@ -26,10 +26,10 @@ jobs:
         with:
           ndk-version: r25c
 
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v2
+      - name: Setup CMake (fast, cached)
+        uses: lukka/get-cmake@latest
         with:
-          cmake-version: '3.22.1'
+          cmakeVersion: 3.22.1
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -41,7 +41,14 @@ jobs:
                 -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build build
           cd ..
+          # Verify .so exists and check its size
           ls -la native/build/libvulkan_renderer.so
+          # Copy to APK location
+          mkdir -p app/src/main/jniLibs/arm64-v8a
+          cp native/build/libvulkan_renderer.so app/src/main/jniLibs/arm64-v8a/
+          # Also copy to mod resources for packaging (fallback)
+          mkdir -p mod/src/main/resources/lib/arm64-v8a
+          cp native/build/libvulkan_renderer.so mod/src/main/resources/lib/arm64-v8a/
 
       - name: Build APK
         run: ./gradlew :app:assembleDebug
@@ -49,14 +56,16 @@ jobs:
       - name: Build Mod JAR
         run: ./gradlew :mod:build
 
-      - name: Verify Mod JAR size and content
+      - name: Verify mod JAR contains native library
         run: |
           JAR_PATH=$(ls mod/build/libs/*.jar | head -1)
+          echo "Mod JAR: $JAR_PATH"
           ls -lh $JAR_PATH
-          jar tf $JAR_PATH | grep libvulkan
+          jar tf $JAR_PATH | grep libvulkan && echo "Native library found in JAR" || echo "WARNING: Native library missing"
           SIZE=$(stat -c%s "$JAR_PATH")
           if [ $SIZE -lt 500000 ]; then
-            echo "WARNING: JAR size is $SIZE bytes (<500KB) – native library missing?"
+            echo "ERROR: JAR too small ($SIZE bytes) – native library not embedded"
+            exit 1
           else
             echo "SUCCESS: JAR size is $SIZE bytes"
           fi
