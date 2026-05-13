@@ -4,7 +4,7 @@ project("vulkanrenderer")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Don't strip symbols – ensure all functions are kept
+# Prevent the linker from removing unused (but needed) functions
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fvisibility=default")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--no-gc-sections")
 
