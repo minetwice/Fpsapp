@@ -30,6 +30,6 @@ public class GameRendererMixin {
 
     @Inject(method = "render", at = @At("RETURN"))
     private void onRenderEnd(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
-        // Optional post-render logic
+        // Post-render cleanup if needed
     }
 }
