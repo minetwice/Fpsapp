@@ -15,19 +15,20 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-static VkInstance instance = VK_NULL_HANDLE;
-static VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-static VkDevice device = VK_NULL_HANDLE;
-static VkQueue graphicsQueue = VK_NULL_HANDLE;
-static VkSurfaceKHR surface = VK_NULL_HANDLE;
-static VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-static VkPipelineCache pipelineCache = VK_NULL_HANDLE;
-static VkCommandPool commandPool = VK_NULL_HANDLE;
-static std::vector<VkCommandBuffer> commandBuffers;
-static std::vector<VkFramebuffer> framebuffers;
-static VkRenderPass renderPass = VK_NULL_HANDLE;
-static VkExtent2D swapchainExtent = {};
-static uint32_t swapImageCount = 0;
+// Non‑static global Vulkan objects (visible to bridge)
+VkInstance instance = VK_NULL_HANDLE;
+VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+VkDevice device = VK_NULL_HANDLE;
+VkQueue graphicsQueue = VK_NULL_HANDLE;
+VkSurfaceKHR surface = VK_NULL_HANDLE;
+VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+VkCommandPool commandPool = VK_NULL_HANDLE;
+std::vector<VkCommandBuffer> commandBuffers;
+std::vector<VkFramebuffer> framebuffers;
+VkRenderPass renderPass = VK_NULL_HANDLE;
+VkExtent2D swapchainExtent = {};
+uint32_t swapImageCount = 0;
 
 static bool g_optEntities = true;
 static bool g_optBlocks = true;
@@ -362,7 +363,11 @@ extern "C" void setTargetFPS(int fps) {
 }
 
 extern "C" void applyRealtimeOptimizations() {
-    if (g_highPerf) LOGD("Realtime optimizations applied");
+    if (g_highPerf) {
+        // Non‑trivial call to prevent stripping
+        vkQueueWaitIdle(graphicsQueue);
+        LOGD("Realtime optimizations applied");
+    }
 }
 
 extern "C" void enableMultiThreading(bool enable) {
