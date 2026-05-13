@@ -9,18 +9,12 @@ group = project.maven_group
 repositories {
     mavenCentral()
     maven { url = 'https://maven.fabricmc.net/' }
-    maven { url = 'https://oss.sonatype.org/content/repositories/snapshots/' }
 }
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    
-    // LWJGL Vulkan bindings
-    implementation 'org.lwjgl:lwjgl:3.3.3'
-    implementation 'org.lwjgl:lwjgl-vulkan:3.3.3'
-    runtimeOnly 'org.lwjgl:lwjgl-platform:3.3.3:natives-linux'
 }
 
 loom {
