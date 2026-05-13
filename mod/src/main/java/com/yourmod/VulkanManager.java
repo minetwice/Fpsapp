@@ -11,18 +11,23 @@ public class VulkanManager {
 
     public void init() {
         if (initialized) return;
-        VulkanMod.LOGGER.info("VulkanManager initialized");
+        VulkanMod.LOGGER.info("VulkanManager initializing");
+        // No automatic native init here; surface will be provided by mixin
         initialized = true;
     }
 
     public void renderFrame() {
         if (!initialized) return;
-        VulkanBridge.nativeRenderFrame();
+        try {
+            VulkanBridge.nativeRenderFrame();
+        } catch (UnsatisfiedLinkError e) {
+            VulkanMod.LOGGER.error("Render frame failed: " + e.getMessage());
+        }
     }
 
     public void cleanup() {
         if (initialized) {
-            VulkanBridge.nativeCleanup();
+            try { VulkanBridge.nativeCleanup(); } catch (UnsatisfiedLinkError e) {}
             initialized = false;
         }
     }
