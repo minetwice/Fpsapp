@@ -11,14 +11,18 @@ public class PerformanceClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("VulkanOptimizer");
     private static final int PORT = 12345;
     private static String targetPackage = "";
-    private static boolean enableIndirectDraw = true;
-    private static boolean enableMultiThreadedRendering = true;
+    private static boolean optimizeEntities = true;
+    private static boolean optimizeBlocks = true;
+    private static boolean optimizeHits = true;
+    private static boolean optimizeCamera = true;
+    private static boolean fixReplayLag = true;
     private static int targetFPS = 500;
+    private static boolean replayActive = false;
 
     @Override
     public void onInitializeClient() {
         connectToOptimizerApp();
-        applyNativeOptimizations();
+        loadNativeOptimizations();
     }
 
     private void connectToOptimizerApp() {
@@ -27,13 +31,14 @@ public class PerformanceClient implements ClientModInitializer {
                 try (Socket socket = new Socket("127.0.0.1", PORT)) {
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
+                    
                     String configJson = in.readLine();
                     if (configJson != null) {
                         parseConfig(configJson);
-                        LOGGER.info("Received and applied config: " + configJson);
+                        applyNativeOptimizations();
+                        LOGGER.info("Optimization config applied: " + configJson);
                     }
-
+                    
                     while (true) {
                         int fps = MinecraftClient.getInstance().getCurrentFps();
                         long mem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
@@ -49,29 +54,75 @@ public class PerformanceClient implements ClientModInitializer {
     }
 
     private void parseConfig(String json) {
-        // Simple parsing - in production use Gson
-        if (json.contains("target_package")) {
-            targetPackage = json.split("target_package\":\"")[1].split("\"")[0];
+        if (json.contains("optimize_entities")) {
+            optimizeEntities = json.contains("\"optimize_entities\":true");
         }
-        if (json.contains("enable_indirect_draw")) {
-            enableIndirectDraw = json.contains("\"enable_indirect_draw\":true");
+        if (json.contains("optimize_blocks")) {
+            optimizeBlocks = json.contains("\"optimize_blocks\":true");
         }
-        if (json.contains("enable_multi_threaded_rendering")) {
-            enableMultiThreadedRendering = json.contains("\"enable_multi_threaded_rendering\":true");
+        if (json.contains("optimize_hits")) {
+            optimizeHits = json.contains("\"optimize_hits\":true");
+        }
+        if (json.contains("optimize_camera")) {
+            optimizeCamera = json.contains("\"optimize_camera\":true");
+        }
+        if (json.contains("fix_replay_lag")) {
+            fixReplayLag = json.contains("\"fix_replay_lag\":true");
         }
         if (json.contains("target_fps")) {
             targetFPS = Integer.parseInt(json.split("target_fps\":")[1].split(",")[0]);
         }
     }
 
-    private void applyNativeOptimizations() {
+    private void loadNativeOptimizations() {
         System.loadLibrary("vulkan_renderer");
-        if (enableIndirectDraw) {
-            VulkanBridge.setIndirectDrawEnabled(true);
-        }
-        if (enableMultiThreadedRendering) {
-            VulkanBridge.setMultiThreadedRendering(true);
-        }
+        applyNativeOptimizations();
+    }
+
+    private void applyNativeOptimizations() {
+        VulkanBridge.setOptimizationFlags(optimizeEntities, optimizeBlocks, optimizeHits, optimizeCamera, fixReplayLag, true);
         VulkanBridge.setTargetFPS(targetFPS);
+    }
+
+    // -------------------------------------------------------------------------
+    // Static methods called from mixins (must be public static)
+    // -------------------------------------------------------------------------
+    public static void applyRealtimeOptimizations() {
+        VulkanBridge.applyRealtimeOptimizations();
+    }
+
+    public static void adjustFramePacing(long frameDelta) {
+        if (targetFPS > 200 && frameDelta > 1000 / targetFPS + 5) {
+            LOGGER.debug("Frame pacing adjusted: " + frameDelta);
+        }
+    }
+
+    public static void onCameraMove(float deltaX, float deltaY) {
+        if (optimizeCamera) {
+            VulkanBridge.onCameraMove(deltaX, deltaY);
+        }
+    }
+
+    public static void setReplayMode(boolean active) {
+        replayActive = active;
+        if (fixReplayLag) {
+            LOGGER.debug("Replay mode set to: " + active);
+        }
+    }
+
+    public static boolean isReplayActive() {
+        return replayActive;
+    }
+
+    public static void onBlockPlace() {
+        if (optimizeBlocks) {
+            VulkanBridge.onBlockPlaceEvent();
+        }
+    }
+
+    public static void onHit() {
+        if (optimizeHits) {
+            VulkanBridge.onHitEvent();
+        }
     }
 }
