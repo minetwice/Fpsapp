@@ -12,22 +12,27 @@ public class VulkanBridge {
             LOGGER.info("Native library loaded successfully");
         } catch (UnsatisfiedLinkError e) {
             LOGGER.error("Failed to load vulkan_renderer: " + e.getMessage());
+            try {
+                System.load("/data/data/git.artdeell.mojo/cache/natives/libvulkan_renderer.so");
+                LOGGER.info("Loaded from fallback path");
+            } catch (Throwable t) {
+                LOGGER.error("Fallback also failed: " + t.getMessage());
+            }
         }
     }
 
-    // Core methods
     public static native boolean nativeInitVulkan(Object surface);
     public static native void nativeRenderFrame();
     public static native void nativeCleanup();
-    public static native long getDevice();
-
-    // Optimization methods
     public static native void setOptimizationFlags(boolean entities, boolean blocks, boolean hits, boolean camera, boolean replay, boolean highPerf);
     public static native void setTargetFPS(int fps);
     public static native void applyRealtimeOptimizations();
+    public static native void enableMultiThreading(boolean enable);
+    public static native void enableDynamicResolution(boolean enable);
     public static native void onBlockPlaceEvent();
     public static native void onHitEvent();
     public static native void onCameraMove(float deltaX, float deltaY);
-    public static native void enableMultiThreading(boolean enable);
-    public static native void enableDynamicResolution(boolean enable);
+    
+    // Added for GPUDrivenRenderer
+    public static native long getDevice();
 }
