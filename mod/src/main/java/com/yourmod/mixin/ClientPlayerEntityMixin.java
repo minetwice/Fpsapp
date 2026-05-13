@@ -1,6 +1,7 @@
 package com.yourmod.mixin;
 
 import com.yourmod.pvp.PVPOptimizer;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.damage.DamageSource;
@@ -25,11 +26,10 @@ public class ClientPlayerEntityMixin {
         PVPOptimizer.onDamageComplete();
     }
 
-    // Faster hit detection: replace vanilla raycast with optimized version
     @Inject(method = "getTarget", at = @At("HEAD"), cancellable = true)
     private void onGetTarget(double maxDistance, float tickDelta, CallbackInfoReturnable<Entity> cir) {
         if (PVPOptimizer.isEnabled()) {
-            Entity target = PVPOptimizer.getNearestEntityForHit((ClientPlayerEntity)(Object)this.client, maxDistance);
+            Entity target = PVPOptimizer.getNearestEntityForHit(MinecraftClient.getInstance(), maxDistance);
             if (target != null) {
                 cir.setReturnValue(target);
             }
