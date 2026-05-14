@@ -3,7 +3,6 @@ package com.fearlauncher
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -17,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -42,36 +42,30 @@ fun SetupScreen(
     val coroutineScope = rememberCoroutineScope()
     val client = remember { OkHttpClient() }
 
-    // Permission states
     var storagePermissionGranted by remember { mutableStateOf(false) }
     var allComponentsDownloaded by remember { mutableStateOf(false) }
     var downloadStates by remember { mutableStateOf(components.associate { it.name to DownloadState.Pending }) }
     var overallProgress by remember { mutableStateOf(0f) }
 
-    // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         storagePermissionGranted = permissions.values.all { it }
     }
 
-    // Check and request permissions
     LaunchedEffect(Unit) {
-        val neededPermissions = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+ doesn't need storage permission for app-specific dirs
             storagePermissionGranted = true
         } else {
-            neededPermissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-        if (neededPermissions.isNotEmpty()) {
-            permissionLauncher.launch(neededPermissions.toTypedArray())
-        } else {
-            storagePermissionGranted = true
+            val neededPermissions = listOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            if (neededPermissions.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }) {
+                storagePermissionGranted = true
+            } else {
+                permissionLauncher.launch(neededPermissions.toTypedArray())
+            }
         }
     }
 
-    // Animated gradient background
     val infiniteTransition = rememberInfiniteTransition(label = "gradient")
     val angle by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -79,8 +73,7 @@ fun SetupScreen(
         animationSpec = infiniteRepeatable(
             animation = tween(10000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
-        ),
-        label = "angle"
+        )
     )
 
     Box(
@@ -100,7 +93,6 @@ fun SetupScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Animated bubble logo
             val bubbleScale by animateFloatAsState(
                 targetValue = if (allComponentsDownloaded) 1.2f else 1f,
                 animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
@@ -135,7 +127,6 @@ fun SetupScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Download components
             if (storagePermissionGranted && !allComponentsDownloaded) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -147,10 +138,11 @@ fun SetupScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         components.forEach { component ->
                             val state = downloadStates[component.name] ?: DownloadState.Pending
+                            val progress = if (state is DownloadState.Downloading) state.progress else 0f
                             DownloadItem(
                                 name = component.name,
                                 state = state,
-                                progress = if (state is DownloadState.Downloading) state.progress else 0f
+                                progress = progress
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -171,7 +163,6 @@ fun SetupScreen(
                 }
             }
 
-            // Show success message when done
             if (allComponentsDownloaded) {
                 AnimatedVisibility(
                     visible = true,
@@ -192,7 +183,6 @@ fun SetupScreen(
         }
     }
 
-    // Start download when permissions are granted
     LaunchedEffect(storagePermissionGranted) {
         if (storagePermissionGranted && !allComponentsDownloaded) {
             val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
@@ -202,7 +192,6 @@ fun SetupScreen(
             for (component in components) {
                 val destFile = File(baseDir, component.fileName)
                 if (destFile.exists() && destFile.length() == component.expectedSize) {
-                    // Already downloaded
                     downloadStates = downloadStates.toMutableMap().apply {
                         this[component.name] = DownloadState.Completed
                     }
@@ -275,7 +264,7 @@ fun DownloadItem(name: String, state: DownloadState, progress: Float) {
                 is DownloadState.Failed -> {
                     Text("❌ Failed", color = Color.Red, fontSize = 12.sp)
                 }
-                else -> {
+                is DownloadState.Pending -> {
                     Text("Pending", color = Color.Gray, fontSize = 12.sp)
                 }
             }
