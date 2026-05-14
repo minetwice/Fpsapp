@@ -14,60 +14,44 @@ import androidx.core.content.ContextCompat
 class SetupActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
-    private lateinit var proceedButton: Button
+    private lateinit var continueButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_setup)
 
         statusText = findViewById(R.id.statusText)
-        proceedButton = findViewById(R.id.proceedButton)
+        continueButton = findViewById(R.id.continueButton)
 
-        proceedButton.setOnClickListener {
-            checkAndRequestPermissions()
+        continueButton.setOnClickListener {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
         }
 
-        // If permissions already granted, proceed directly
-        if (checkPermissions()) {
-            proceedToMain()
+        checkPermissions()
+    }
+
+    private fun checkPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            statusText.text = "Ready! You can continue."
+            return
+        }
+
+        val permissions = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        if (permissions.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }) {
+            statusText.text = "Ready! You can continue."
         } else {
-            statusText.text = "Permission required"
+            statusText.text = "Storage permission required. Please grant."
+            ActivityCompat.requestPermissions(this, permissions, 100)
         }
     }
 
-    private fun checkPermissions(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            true // No storage permission needed for Android 11+
-        } else {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    private fun checkAndRequestPermissions() {
-        if (checkPermissions()) {
-            proceedToMain()
-        } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                1001
-            )
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                proceedToMain()
-            } else {
-                statusText.text = "Permission denied. App cannot run."
-            }
+        if (requestCode == 100 && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            statusText.text = "Ready! You can continue."
+        } else {
+            statusText.text = "Permission denied. App may not work correctly."
         }
-    }
-
-    private fun proceedToMain() {
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
     }
 }
