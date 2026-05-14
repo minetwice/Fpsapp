@@ -4,8 +4,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="#1A1A1A"
-    android:padding="24dp">
+    android:padding="24dp"
+    android:background="#1A1A1A">
 
     <TextView
         android:layout_width="wrap_content"
@@ -20,15 +20,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Checking permissions..."
+        android:textSize="16sp"
         android:textColor="#FFFFFF"
-        android:layout_marginTop="32dp" />
+        android:layout_marginTop="24dp" />
 
     <Button
-        android:id="@+id/proceedButton"
+        android:id="@+id/continueButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Grant Permission & Launch"
-        android:backgroundTint="#E53935"
-        android:layout_marginTop="32dp" />
+        android:text="Continue"
+        android:layout_marginTop="32dp"
+        android:backgroundTint="#E53935" />
 
 </LinearLayout>
