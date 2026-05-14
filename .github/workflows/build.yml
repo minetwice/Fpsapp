@@ -1,4 +1,4 @@
-name: Build Fear Launcher APK
+name: Build Fear Launcher APK (Full)
 
 on:
   push:
@@ -34,22 +34,107 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Clean Gradle caches and refresh dependencies
-        run: ./gradlew clean --refresh-dependencies
+      # ------------------------------------------------------------
+      # Build native libraries for multiple ABIs
+      # ------------------------------------------------------------
+      - name: Build native libraries for ABIs
+        id: build_native
+        run: |
+          ABIS=("arm64-v8a" "armeabi-v7a" "x86")
+          mkdir -p app/src/main/jniLibs
 
+          for ABI in "${ABIS[@]}"; do
+            echo "========================================="
+            echo "Building for ABI: $ABI"
+            echo "========================================="
+            rm -rf native/build/$ABI
+            mkdir -p native/build/$ABI
+            cd native/build/$ABI
+            cmake ../.. \
+              -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=$ABI \
+              -DANDROID_PLATFORM=android-29 \
+              -DCMAKE_BUILD_TYPE=Release
+            cmake --build . -j$(nproc)
+            mkdir -p ../../../app/src/main/jniLibs/$ABI
+            if [ -f libvulkan_renderer.so ]; then
+              cp libvulkan_renderer.so ../../../app/src/main/jniLibs/$ABI/
+              echo "✅ Copied libvulkan_renderer.so for $ABI"
+            else
+              echo "⚠️ libvulkan_renderer.so not found for $ABI – skipping"
+            fi
+            cd ../../..
+          done
+
+          echo "jniLibs structure:"
+          ls -la app/src/main/jniLibs/
+
+      # ------------------------------------------------------------
+      # Download boardwalk.jar if not present
+      # ------------------------------------------------------------
       - name: Download boardwalk.jar
         run: |
           mkdir -p app/libs
           if [ ! -f app/libs/boardwalk.jar ]; then
+            echo "📥 Downloading boardwalk.jar..."
             curl -L -o app/libs/boardwalk.jar https://nightly.link/PojavLauncherTeam/PojavLauncher/workflows/build/main/boardwalk.jar
+            if [ ! -s app/libs/boardwalk.jar ]; then
+              echo "⚠️ Nightly failed, trying release..."
+              DOWNLOAD_URL=$(curl -s https://api.github.com/repos/PojavLauncherTeam/PojavLauncher/releases/latest | grep "browser_download_url.*boardwalk.*\.jar" | cut -d '"' -f 4)
+              if [ -n "$DOWNLOAD_URL" ]; then
+                curl -L -o app/libs/boardwalk.jar "$DOWNLOAD_URL"
+              else
+                echo "❌ Could not download boardwalk.jar. Please place manually in app/libs/"
+                exit 1
+              fi
+            fi
           fi
           ls -la app/libs/
 
+      # ------------------------------------------------------------
+      # Build APK (capture full log)
+      # ------------------------------------------------------------
       - name: Build APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        id: build_apk
+        run: |
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log
+          echo "status=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
-      - name: Upload APK
+      # ------------------------------------------------------------
+      # If build failed, extract and upload error report
+      # ------------------------------------------------------------
+      - name: Extract error summary
+        if: steps.build_apk.outputs.status != 0
+        run: |
+          echo "### ❌ Build Failed - Error Summary" > error_summary.md
+          echo "" >> error_summary.md
+          echo "```" >> error_summary.md
+          grep -E "FAILURE|error|Exception|FAILED|What went wrong|Caused by|> Task|Unresolved|cannot find symbol" build.log | head -100 >> error_summary.md
+          echo "```" >> error_summary.md
+          echo "" >> error_summary.md
+          echo "### 📄 Full Log (first 300 lines)" >> error_summary.md
+          echo "<details><summary>Click to expand</summary>" >> error_summary.md
+          echo "" >> error_summary.md
+          echo "```" >> error_summary.md
+          head -300 build.log >> error_summary.md
+          echo "```" >> error_summary.md
+          echo "</details>" >> error_summary.md
+
+      - name: Upload error report
+        if: steps.build_apk.outputs.status != 0
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-error-report
+          path: error_summary.md
+
+      - name: Upload APK (if build succeeded)
+        if: steps.build_apk.outputs.status == 0
         uses: actions/upload-artifact@v4
         with:
           name: fear-launcher-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Fail job if build failed
+        if: steps.build_apk.outputs.status != 0
+        run: exit 1
