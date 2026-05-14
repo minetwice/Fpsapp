@@ -44,8 +44,17 @@ fun SetupScreen(
 
     var storagePermissionGranted by remember { mutableStateOf(false) }
     var allComponentsDownloaded by remember { mutableStateOf(false) }
-    var downloadStates by remember { mutableStateOf(components.associate { it.name to DownloadState.Pending }) }
+    val downloadStates = remember { mutableStateMapOf<String, DownloadState>() }
     var overallProgress by remember { mutableStateOf(0f) }
+
+    // Initialize download states
+    LaunchedEffect(components) {
+        components.forEach { component ->
+            if (!downloadStates.containsKey(component.name)) {
+                downloadStates[component.name] = DownloadState.Pending
+            }
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -183,57 +192,47 @@ fun SetupScreen(
         }
     }
 
+    // Download process
     LaunchedEffect(storagePermissionGranted) {
         if (storagePermissionGranted && !allComponentsDownloaded) {
             val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
-            var totalBytes = components.sumOf { it.expectedSize }.toFloat()
+            val totalBytes = components.sumOf { it.expectedSize }.toFloat()
             var downloadedBytes = 0f
 
             for (component in components) {
                 val destFile = File(baseDir, component.fileName)
+                val currentState = downloadStates[component.name]
                 if (destFile.exists() && destFile.length() == component.expectedSize) {
-                    downloadStates = downloadStates.toMutableMap().apply {
-                        this[component.name] = DownloadState.Completed
-                    }
+                    downloadStates[component.name] = DownloadState.Completed
                     downloadedBytes += component.expectedSize
                     overallProgress = downloadedBytes / totalBytes
                     continue
                 }
 
-                downloadStates = downloadStates.toMutableMap().apply {
-                    this[component.name] = DownloadState.Downloading(0f)
-                }
+                downloadStates[component.name] = DownloadState.Downloading(0f)
 
                 try {
-                    val result = downloadFile(client, component.url, destFile) { progress ->
-                        downloadStates = downloadStates.toMutableMap().apply {
-                            this[component.name] = DownloadState.Downloading(progress)
-                        }
+                    val success = downloadFile(client, component.url, destFile) { progress ->
+                        downloadStates[component.name] = DownloadState.Downloading(progress)
                         val componentDownloaded = destFile.length().coerceAtMost(component.expectedSize)
                         val newTotal = downloadedBytes + componentDownloaded
                         overallProgress = newTotal / totalBytes
                     }
-                    if (result) {
-                        downloadStates = downloadStates.toMutableMap().apply {
-                            this[component.name] = DownloadState.Completed
-                        }
+                    if (success) {
+                        downloadStates[component.name] = DownloadState.Completed
                         downloadedBytes += component.expectedSize
                         overallProgress = downloadedBytes / totalBytes
                     } else {
-                        downloadStates = downloadStates.toMutableMap().apply {
-                            this[component.name] = DownloadState.Failed
-                        }
+                        downloadStates[component.name] = DownloadState.Failed
                         break
                     }
                 } catch (e: IOException) {
-                    downloadStates = downloadStates.toMutableMap().apply {
-                        this[component.name] = DownloadState.Failed
-                    }
+                    downloadStates[component.name] = DownloadState.Failed
                     break
                 }
             }
 
-            if (downloadStates.all { it.value is DownloadState.Completed }) {
+            if (downloadStates.values.all { it is DownloadState.Completed }) {
                 allComponentsDownloaded = true
             }
         }
