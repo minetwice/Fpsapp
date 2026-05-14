@@ -1,10 +1,10 @@
-name: Build Launcher APK with Native Libraries
+name: Build Launcher APK (Auto Native + Boardwalk)
 
 on:
   push:
     branches: [ main ]
   pull_request:
-    workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -34,10 +34,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 1. Build native Vulkan renderer for all ABIs (if native folder exists)
+      # ============================================================
+      # 1. Build native Vulkan renderer for multiple ABIs
+      # ============================================================
       - name: Build native libraries for multiple ABIs
         run: |
-          # ABIs to support – add "x86_64" if needed
+          # List of ABIs to support – adjust as needed
           ABIS=("armeabi-v7a" "arm64-v8a" "x86")
 
           # Create jniLibs directory if not exists
@@ -48,22 +50,22 @@ jobs:
             echo "Building for ABI: $ABI"
             echo "========================================="
 
-            # Clean and create build directory for this ABI
+            # Create clean build directory for this ABI
             rm -rf native/build/$ABI
             mkdir -p native/build/$ABI
             cd native/build/$ABI
 
-            # Run CMake
+            # Run CMake configuration
             cmake ../.. \
               -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
               -DANDROID_ABI=$ABI \
               -DANDROID_PLATFORM=android-29 \
               -DCMAKE_BUILD_TYPE=Release
 
-            # Build
+            # Build the library
             cmake --build . -j$(nproc)
 
-            # Copy .so to proper jniLibs folder
+            # Copy the resulting .so to jniLibs
             mkdir -p ../../../app/src/main/jniLibs/$ABI
             if [ -f libvulkan_renderer.so ]; then
               cp libvulkan_renderer.so ../../../app/src/main/jniLibs/$ABI/
@@ -75,38 +77,59 @@ jobs:
             cd ../../..
           done
 
-          # Verify copied libraries
+          # Verify final jniLibs structure
           echo "========================================="
-          echo "jniLibs structure:"
+          echo "Final jniLibs directory structure:"
           ls -la app/src/main/jniLibs/
           for ABI in "${ABIS[@]}"; do
             echo "--- $ABI ---"
             ls -la app/src/main/jniLibs/$ABI/ || echo "Empty"
           done
 
-      # 2. If boardwalk.jar is present in libs/, copy to app/libs/
-      - name: Copy boardwalk.jar if exists
+      # ============================================================
+      # 2. Automatically download boardwalk.jar if not present
+      # ============================================================
+      - name: Download boardwalk.jar if not present
         run: |
-          if [ -f libs/boardwalk.jar ]; then
-            mkdir -p app/libs
-            cp libs/boardwalk.jar app/libs/
-            echo "✅ boardwalk.jar copied to app/libs/"
+          mkdir -p app/libs
+          if [ ! -f app/libs/boardwalk.jar ]; then
+            echo "📥 boardwalk.jar not found. Downloading from PojavLauncher nightly..."
+            # Try nightly.link (direct artifact from main branch)
+            curl -L -o app/libs/boardwalk.jar https://nightly.link/PojavLauncherTeam/PojavLauncher/workflows/build/main/boardwalk.jar
+            if [ ! -s app/libs/boardwalk.jar ]; then
+              echo "⚠️ Nightly download failed. Trying fallback from latest release..."
+              # Try to get from latest release
+              DOWNLOAD_URL=$(curl -s https://api.github.com/repos/PojavLauncherTeam/PojavLauncher/releases/latest | grep "browser_download_url.*boardwalk.*\.jar" | cut -d '"' -f 4)
+              if [ -n "$DOWNLOAD_URL" ]; then
+                curl -L -o app/libs/boardwalk.jar "$DOWNLOAD_URL"
+              else
+                echo "❌ Could not download boardwalk.jar. Please place it manually in app/libs/"
+                exit 1
+              fi
+            fi
           else
-            echo "⚠️ boardwalk.jar not found – make sure to add it or use JitPack dependency"
+            echo "✅ boardwalk.jar already present."
           fi
+          ls -la app/libs/
 
+      # ============================================================
       # 3. Build the APK using Gradle
+      # ============================================================
       - name: Build APK
         run: ./gradlew :app:assembleDebug
 
-      # 4. Verify APK size and contents (optional)
-      - name: Verify APK
+      # ============================================================
+      # 4. Verify APK contains native libraries and boardwalk
+      # ============================================================
+      - name: Verify APK contents
         run: |
           APK_PATH=$(ls app/build/outputs/apk/debug/*.apk | head -1)
           echo "Generated APK: $APK_PATH"
           ls -lh $APK_PATH
-          # Check if native libraries are inside the APK (quick check)
-          unzip -l $APK_PATH | grep "lib/" || echo "⚠️ No native libraries found in APK"
+          echo "=== Native libraries inside APK ==="
+          unzip -l $APK_PATH | grep "lib/" || echo "⚠️ No native libraries found"
+          echo "=== Boardwalk JAR inside APK ==="
+          unzip -l $APK_PATH | grep "boardwalk.jar" || echo "⚠️ boardwalk.jar not found in APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
