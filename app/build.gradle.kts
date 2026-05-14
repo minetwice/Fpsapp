@@ -17,7 +17,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Only include arm64-v8a (or add others if you build them)
         ndk {
             abiFilters.add("arm64-v8a")
         }
@@ -38,8 +37,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        jvmToolchain(17)
     }
 
     buildFeatures {
@@ -66,7 +65,7 @@ dependencies {
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
-    implementation(libs.compose.material3.window.size)          // fixed alias
+    implementation(libs.compose.material3.window.size)
     implementation(libs.androidx.navigation.compose)
 
     // Image loading
@@ -96,5 +95,4 @@ dependencies {
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation(libs.compose.ui.tooling)
-    debugImplementation(libs.compose.ui.test.manifest)
 }
