@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.yourlauncher"
+    namespace = "com.fearlauncher"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.yourlauncher"
+        applicationId = "com.fearlauncher"
         minSdk = 29
         targetSdk = 35
         versionCode = 1
@@ -68,7 +68,7 @@ dependencies {
     implementation(libs.compose.material3.window.size)
     implementation(libs.androidx.navigation.compose)
 
-    // Image loading (stable version)
+    // Image loading
     implementation(libs.coil.compose)
 
     // Networking & JSON
@@ -78,7 +78,7 @@ dependencies {
     // JNA for native library access
     implementation("net.java.dev.jna:jna:5.13.0@aar")
 
-    // Microsoft Authentication – exclude problematic display-mask module
+    // Microsoft Authentication (use stable version without display-mask issue)
     implementation("com.microsoft.identity.client:msal:5.9.0") {
         exclude(group = "com.microsoft.device.display", module = "display-mask")
     }
