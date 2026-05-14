@@ -23,137 +23,40 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-// --- Data classes ---
-data class Component(val name: String, val url: String, val fileName: String, val expectedSize: Long)
-
-sealed class DownloadState {
-    object Pending : DownloadState()
-    data class Downloading(val progress: Float) : DownloadState()
-    object Completed : DownloadState()
-    object Failed : DownloadState()
-}
-
-// --- Download helper ---
-suspend fun downloadFile(client: OkHttpClient, url: String, destFile: File, onProgress: (Float) -> Unit): Boolean {
-    return withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder().url(url).build()
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext false
-            val body = response.body ?: return@withContext false
-            val contentLength = body.contentLength()
-            destFile.parentFile?.mkdirs()
-            FileOutputStream(destFile).use { output ->
-                val input = body.byteStream()
-                val buffer = ByteArray(8192)
-                var bytesRead: Int
-                var totalBytesRead = 0L
-                while (input.read(buffer).also { bytesRead = it } != -1) {
-                    output.write(buffer, 0, bytesRead)
-                    totalBytesRead += bytesRead
-                    if (contentLength > 0) {
-                        onProgress(totalBytesRead.toFloat() / contentLength)
-                    }
-                }
-                output.flush()
-            }
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
-}
-
-// --- UI Component ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupScreen(
-    components: List<Component>,
-    onAllComponentsReady: () -> Unit
-) {
+fun SetupScreen(onAllComponentsReady: () -> Unit) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val client = remember { OkHttpClient() }
-
-    var storagePermissionGranted by remember { mutableStateOf(false) }
-    var allDownloaded by remember { mutableStateOf(false) }
-    val downloadStates = remember { mutableStateMapOf<String, DownloadState>() }
-    var overallProgress by remember { mutableStateOf(0f) }
-
-    // Initialize download states
-    LaunchedEffect(components) {
-        components.forEach { comp ->
-            if (!downloadStates.containsKey(comp.name)) {
-                downloadStates[comp.name] = DownloadState.Pending
+    val viewModel: SetupViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return SetupViewModel(context) as T
             }
         }
-    }
+    )
 
-    // Permission launcher
+    val storageGranted by viewModel.storagePermissionGranted.collectAsState()
+    val allDownloaded by viewModel.allComponentsDownloaded.collectAsState()
+    val downloadStates by viewModel.downloadStates.collectAsState()
+    val overallProgress by viewModel.overallProgress.collectAsState()
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { perms ->
-        storagePermissionGranted = perms.values.all { it }
+        viewModel.setStoragePermissionGranted(perms.values.all { it })
     }
 
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            storagePermissionGranted = true
+            viewModel.setStoragePermissionGranted(true)
         } else {
             val needed = listOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             if (needed.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }) {
-                storagePermissionGranted = true
+                viewModel.setStoragePermissionGranted(true)
             } else {
                 permissionLauncher.launch(needed.toTypedArray())
-            }
-        }
-    }
-
-    // Download process
-    LaunchedEffect(storagePermissionGranted) {
-        if (storagePermissionGranted && !allDownloaded) {
-            val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
-            val totalBytes = components.sumOf { it.expectedSize }.toFloat()
-            var downloadedBytes = 0f
-
-            for (comp in components) {
-                val destFile = File(baseDir, comp.fileName)
-                // Check if already downloaded
-                if (destFile.exists() && destFile.length() == comp.expectedSize) {
-                    downloadStates[comp.name] = DownloadState.Completed
-                    downloadedBytes += comp.expectedSize
-                    overallProgress = downloadedBytes / totalBytes
-                    continue
-                }
-
-                downloadStates[comp.name] = DownloadState.Downloading(0f)
-                val success = downloadFile(client, comp.url, destFile) { progress ->
-                    downloadStates[comp.name] = DownloadState.Downloading(progress)
-                    val compDownloaded = destFile.length().coerceAtMost(comp.expectedSize)
-                    overallProgress = (downloadedBytes + compDownloaded) / totalBytes
-                }
-                if (success) {
-                    downloadStates[comp.name] = DownloadState.Completed
-                    downloadedBytes += comp.expectedSize
-                    overallProgress = downloadedBytes / totalBytes
-                } else {
-                    downloadStates[comp.name] = DownloadState.Failed
-                    break
-                }
-            }
-
-            if (downloadStates.values.all { it is DownloadState.Completed }) {
-                allDownloaded = true
             }
         }
     }
@@ -213,14 +116,14 @@ fun SetupScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = if (storagePermissionGranted) "Initializing..." else "Storage permission required",
+                text = if (storageGranted) "Initializing..." else "Storage permission required",
                 fontSize = 14.sp,
                 color = Color.LightGray
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            if (storagePermissionGranted && !allDownloaded) {
+            if (storageGranted && !allDownloaded) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xAA000000)),
@@ -229,10 +132,9 @@ fun SetupScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Required Components", color = Color.White, fontSize = 18.sp)
                         Spacer(modifier = Modifier.height(12.dp))
-                        components.forEach { comp ->
-                            val state = downloadStates[comp.name] ?: DownloadState.Pending
+                        downloadStates.forEach { (name, state) ->
                             val progress = if (state is DownloadState.Downloading) state.progress else 0f
-                            DownloadItemRow(name = comp.name, state = state, progress = progress)
+                            DownloadItemRow(name = name, state = state, progress = progress)
                             Spacer(modifier = Modifier.height(8.dp))
                         }
                         Spacer(modifier = Modifier.height(16.dp))
