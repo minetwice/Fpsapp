@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.yourlauncher">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -14,7 +13,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="Vulkan Launcher"
+        android:label="Fear Launcher"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
 
         <activity
@@ -26,7 +25,7 @@
             </intent-filter>
         </activity>
 
-        <!-- File provider for sharing game files (optional) -->
+        <!-- File provider for game file sharing (optional) -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
