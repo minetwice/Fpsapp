@@ -1,9 +1,9 @@
 #include <android/log.h>
+#include <android/native_window.h>
 
 #define LOG_TAG "VulkanCore"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
-// Empty stub – will be replaced with real Vulkan code later
 extern "C" {
 
 bool initVulkan(ANativeWindow* window) {
