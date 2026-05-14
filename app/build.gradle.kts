@@ -16,6 +16,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // ✅ Only include arm64-v8a (you can add others if needed)
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -81,7 +86,7 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Boardwalk JVM launcher – place boardwalk.jar in app/libs/
+    // ✅ Boardwalk JAR – automatically picked from app/libs/ if present
     implementation(fileTree("libs") { include("*.jar") })
 
     // Testing
