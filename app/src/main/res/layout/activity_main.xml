@@ -4,20 +4,31 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="16dp">
+    android:background="#1A1A1A"
+    android:padding="24dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Fear Launcher"
-        android:textSize="28sp"
+        android:textSize="32sp"
+        android:textColor="#E53935"
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Version 1.0"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp" />
+        android:text="Checking permissions..."
+        android:textColor="#FFFFFF"
+        android:layout_marginTop="32dp" />
+
+    <Button
+        android:id="@+id/proceedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Grant Permission & Launch"
+        android:backgroundTint="#E53935"
+        android:layout_marginTop="32dp" />
 
 </LinearLayout>
