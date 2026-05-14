@@ -68,23 +68,25 @@ dependencies {
     implementation(libs.compose.material3.window.size)
     implementation(libs.androidx.navigation.compose)
 
-    // Image loading (hardcoded stable version)
-    implementation("io.coil-kt:coil-compose:2.7.0")
+    // Image loading (stable version)
+    implementation(libs.coil.compose)
 
     // Networking & JSON
     implementation(libs.okhttp)
     implementation(libs.gson)
 
-    // JNA
+    // JNA for native library access
     implementation("net.java.dev.jna:jna:5.13.0@aar")
 
-    // MSAL
-    implementation("com.microsoft.identity.client:msal:5.+")
+    // Microsoft Authentication – exclude problematic display-mask module
+    implementation("com.microsoft.identity.client:msal:5.9.0") {
+        exclude(group = "com.microsoft.device.display", module = "display-mask")
+    }
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Boardwalk JAR
+    // Boardwalk JAR – automatically picked from app/libs/ if placed there
     implementation(fileTree("libs") { include("*.jar") })
 
     // Testing
