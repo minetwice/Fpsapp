@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <files-path name="minecraft" path="minecraft/" />
+    <cache-path name="cache" path="minecraft_cache/" />
+    <external-files-path name="external_minecraft" path="minecraft/" />
 </paths>
