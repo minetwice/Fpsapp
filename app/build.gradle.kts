@@ -77,7 +77,6 @@ dependencies {
 
     // JNA for native library access
     implementation("net.java.dev.jna:jna:5.13.0@aar")
-    implementation("com.github.aliucord:AndroidSystemProperties:master-SNAPSHOT")
 
     // Microsoft Authentication (MSAL)
     implementation("com.microsoft.identity.client:msal:5.+")
