@@ -17,7 +17,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // ✅ Only include arm64-v8a (you can add others if needed)
+        // Only include arm64-v8a (or add others if you build them)
         ndk {
             abiFilters.add("arm64-v8a")
         }
@@ -66,7 +66,7 @@ dependencies {
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
-    implementation(libs.compose.material3.window.size.class)
+    implementation(libs.compose.material3.window.size)          // fixed alias
     implementation(libs.androidx.navigation.compose)
 
     // Image loading
@@ -86,7 +86,7 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // ✅ Boardwalk JAR – automatically picked from app/libs/ if present
+    // Boardwalk JAR – automatically picked from app/libs/ if placed there
     implementation(fileTree("libs") { include("*.jar") })
 
     // Testing
