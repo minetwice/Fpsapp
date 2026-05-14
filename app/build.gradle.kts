@@ -68,23 +68,23 @@ dependencies {
     implementation(libs.compose.material3.window.size)
     implementation(libs.androidx.navigation.compose)
 
-    // Image loading
-    implementation(libs.coil.compose)
+    // Image loading (hardcoded stable version)
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     // Networking & JSON
     implementation(libs.okhttp)
     implementation(libs.gson)
 
-    // JNA for native library access
+    // JNA
     implementation("net.java.dev.jna:jna:5.13.0@aar")
 
-    // Microsoft Authentication (MSAL)
+    // MSAL
     implementation("com.microsoft.identity.client:msal:5.+")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Boardwalk JAR – automatically picked from app/libs/ if placed there
+    // Boardwalk JAR
     implementation(fileTree("libs") { include("*.jar") })
 
     // Testing
